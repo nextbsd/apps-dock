@@ -13,7 +13,7 @@
 #import "DockItem.h"
 #import <ctype.h>
 #import <limits.h>
-#import <mntent.h>
+#import "DockMntent.h"
 #import <paths.h>
 #import <stdlib.h>
 #import <string.h>
