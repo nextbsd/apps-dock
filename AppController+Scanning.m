@@ -29,7 +29,7 @@
       [_x11 scanForDockApps];
       if (!_x11EventTimer)
 	{
-	  _x11EventTimer = [NSTimer scheduledTimerWithTimeInterval:0.5
+	  _x11EventTimer = [NSTimer scheduledTimerWithTimeInterval:0.02
 							    target:_x11
 							  selector:@selector(processPendingEvents)
 							  userInfo:nil
