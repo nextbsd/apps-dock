@@ -33,6 +33,22 @@
       return @"Recycler";
     }
 
+  if (DockHoverIsExtra(index))
+    {
+      NSInteger extraIndex = DockHoverExtraIndex(index);
+      NSString *title = nil;
+
+      if (extraIndex < (NSInteger)[_extras count])
+	{
+	  NS_DURING
+	    title = [[_extras objectAtIndex:(NSUInteger)extraIndex] toolTip];
+	  NS_HANDLER
+	    title = nil;
+	  NS_ENDHANDLER
+	}
+      return title;
+    }
+
   if (index >= 0 && index < (NSInteger)[_items count])
     {
       DockItem *item = [_items objectAtIndex: (NSUInteger)index];

@@ -129,6 +129,8 @@
   [tabItem setView:applicationsView];
   [tabView addTabViewItem:tabItem];
 
+  [self addExtrasTabToTabView:tabView];
+
   label = [self labelWithTitle:@"Placement"
 			 frame:NSMakeRect(18, 264, 110, 20)];
   [dockView addSubview:label];
@@ -511,6 +513,59 @@
   DESTROY(closeButton);
 
   [self updateControls];
+}
+
+
+/*
+ * Extras: a switch per Dock extra to show or hide it, in the status
+ * area's order. Only where the Dock has extras (NextBSD's WindowServer).
+ */
+- (void) addExtrasTabToTabView: (NSTabView *)tabView
+{
+  NSArray *extras = [_delegate settingsControllerDockExtras:self];
+  NSView *extrasView;
+  NSTabViewItem *tabItem;
+  NSTextField *label;
+  NSUInteger i;
+
+  if (![extras count])
+    {
+      return;
+    }
+  extrasView = AUTORELEASE([[NSView alloc]
+			     initWithFrame:NSMakeRect(0, 0, 420, 404)]);
+  tabItem = AUTORELEASE([[NSTabViewItem alloc] initWithIdentifier:@"Extras"]);
+  [tabItem setLabel:@"Extras"];
+  [tabItem setView:extrasView];
+  [tabView addTabViewItem:tabItem];
+
+  label = [self labelWithTitle:@"Show in the Dock"
+			 frame:NSMakeRect(18, 360, 380, 20)];
+  [extrasView addSubview:label];
+  _extraButtons = [NSMutableArray new];
+  _extraIdentifiers = [NSMutableArray new];
+  for (i = 0; i < [extras count]; i++)
+    {
+      NSDictionary *extra = [extras objectAtIndex:i];
+      NSButton *button =
+	[self buttonWithTitle:[extra objectForKey:@"name"]
+			frame:NSMakeRect(32, 330 - 26.0 * i, 360, 24)
+		   buttonType:NSSwitchButton
+		       action:@selector(extraShownChanged:)];
+
+      [button setTag:(NSInteger)i];
+      [extrasView addSubview:button];
+      [_extraButtons addObject:button];
+      [_extraIdentifiers addObject:[extra objectForKey:@"identifier"]];
+      RELEASE(button);
+    }
+  label = [self labelWithTitle:
+		  @"Drag an extra in the Dock to move it. An extra with "
+		@"nothing to show (no Wi-Fi, battery or sound) has no tile."
+			 frame:NSMakeRect(18, 300 - 26.0 * [extras count],
+					  390, 40)];
+  [label setFont:[NSFont systemFontOfSize:[NSFont smallSystemFontSize]]];
+  [extrasView addSubview:label];
 }
 
 

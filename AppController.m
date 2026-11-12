@@ -107,6 +107,7 @@
       [ws setDelegate:self];
       [ws setHidesMiniwindows:_hidesMiniwindows];
       [ws start];
+      [self loadDockExtras];
     }
   else
     {
@@ -139,6 +140,7 @@
   DESTROY(_preferences);
   DESTROY(_dockMenu);
   DESTROY(_windowManager);
+  DESTROY(_extrasController);
   DESTROY(_dockView);
   DESTROY(_window);
   DESTROY(_applicationStore);
@@ -157,6 +159,7 @@
 
 - (void) applicationWillTerminate: (NSNotification *)notification
 {
+  [_extrasController unloadExtras];
   [self savePersistedApplications];
   [[NSUserDefaults standardUserDefaults] synchronize];
 }

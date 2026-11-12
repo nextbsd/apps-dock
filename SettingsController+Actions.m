@@ -45,6 +45,21 @@
 }
 
 
+- (void) extraShownChanged: (id)sender
+{
+  NSInteger index = [sender tag];
+
+  if (index < 0 || index >= (NSInteger)[_extraIdentifiers count])
+    {
+      return;
+    }
+  [_delegate settingsController:self
+	   didChangeExtraHidden:[(NSButton *)sender state] != NSOnState
+		  forIdentifier:[_extraIdentifiers objectAtIndex:(NSUInteger)index]];
+  [self updateExtraControls];
+}
+
+
 - (void) placementChanged: (id)sender
 {
   [_delegate settingsController:self

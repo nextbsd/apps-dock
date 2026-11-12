@@ -22,6 +22,7 @@
 #import "SettingsController.h"
 #import "X11DockManager.h"
 #import "WSDockManager.h"
+#import "DockExtrasController.h"
 
 @class ApplicationIconManager;
 @class DockApplicationStore;
@@ -44,6 +45,8 @@
   NSMutableSet *_launchedApplicationPaths;
   /* X11DockManager, or WSDockManager on NextBSD's WindowServer. */
   id _windowManager;
+  /* The status area's Dock extras (NextBSD's WindowServer only). */
+  DockExtrasController *_extrasController;
   NSTimer *_x11EventTimer;
   NSTimer *_scanTimer;
   NSTimer *_processScanTimer;

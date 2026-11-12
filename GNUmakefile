@@ -16,6 +16,8 @@ AppController+Scanning.m \
 AppController+Settings.m \
 AppController+X11Delegate.m \
 AppController+WindowServer.m \
+AppController+Extras.m \
+DockExtrasController.m \
 SettingsController+Panel.m \
 SettingsController+Applications.m \
 SettingsController+Updates.m \
@@ -35,6 +37,7 @@ DockView+Pasteboard.m \
 DockView+Drawing.m \
 DockView+Dragging.m \
 DockView+Mouse.m \
+DockView+Extras.m \
 DockView.m \
 DockItem+Icons.m \
 DockItem+Factory.m \
@@ -68,6 +71,14 @@ ifeq ($(shell pkg-config --exists WindowServerClient 2>/dev/null && echo yes),ye
 ADDITIONAL_OBJCFLAGS += -DDOCK_HAVE_WINDOWSERVER \
 	$(shell pkg-config --cflags WindowServerClient)
 DockWM_TOOL_LIBS += $(shell pkg-config --libs WindowServerClient)
+endif
+
+# The Dock extras (Extras/), built and installed with the Dock. They
+# use NextBSD's system libraries, and only the WindowServer Dock has a
+# status area, so they're built where the Dock is built for WindowServer.
+ifeq ($(shell pkg-config --exists WindowServerClient 2>/dev/null && echo yes),yes)
+SUBPROJECTS = Extras
+include $(GNUSTEP_MAKEFILES)/aggregate.make
 endif
 
 include $(GNUSTEP_MAKEFILES)/application.make

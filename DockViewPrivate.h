@@ -19,6 +19,7 @@
 
 #import "DockView.h"
 #import "DockItem.h"
+#import "DockExtra.h"
 #import <GNUstepBase/GNUstep.h>
 #import <math.h>
 
@@ -37,6 +38,11 @@
 #define DockHoverNone -1
 #define DockHoverTopIcon -2
 #define DockHoverRecycler -3
+/* Dock extras hover as -100, -101, ... */
+#define DockHoverExtraBase -100
+#define DockHoverExtra(i) (DockHoverExtraBase - (i))
+#define DockHoverIsExtra(h) ((h) <= DockHoverExtraBase)
+#define DockHoverExtraIndex(h) (DockHoverExtraBase - (h))
 
 static inline NSColor *
 DockViewCalibratedBackgroundColor(NSColor *color)
@@ -194,6 +200,17 @@ DockViewCalibratedBackgroundColor(NSColor *color)
 - (NSRect) sectionSeparatorRectAtEnd: (BOOL)atEnd;
 - (NSArray *) sectionBoundaryIndexes;
 - (NSRect) statusAreaRect;
+- (NSRect) extraCellAtIndex: (NSUInteger)index;
+- (NSUInteger) extraIndexAtPoint: (NSPoint)p;
+- (NSPoint) dockPointForEvent: (NSEvent *)event;
+- (void) mouseDownOnExtraAtIndex: (NSUInteger)index event: (NSEvent *)event;
+- (void) rightMouseDownOnExtraAtIndex: (NSUInteger)index event: (NSEvent *)event;
+- (void) scrollWheel: (NSEvent *)event onExtra: (id)extra;
+- (NSArray *) renderStateForExtra: (id)extra;
+- (void) drawExtraWindowForExtra: (id)extra;
+- (void) syncExtraWindows: (NSMutableSet *)liveKeys;
+- (void) refreshExtraWindow: (id)extra;
+- (void) forgetHover;
 - (void) drawSeparatorBeforeIndex: (NSUInteger)index;
 - (void) drawDockSeparators;
 - (void) drawDockBorder;

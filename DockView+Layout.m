@@ -84,19 +84,49 @@
 }
 
 
-/* Where the Dock extras go: right after the last section (empty until
- * apps-dock#5 gives it a length), above the flexible gap. */
+/* Where the Dock extras go: right after the last section, before the
+ * flexible gap, one cell each, along the Dock whichever edge it is on
+ * (only when the Dock fills its screen edge, as on WindowServer). */
 - (NSRect) statusAreaRect
 {
-  NSPoint origin = [self cellOriginAtIndex:[_items count]];
+  NSRect first;
+  NSRect last;
 
-  if (!_fillsColumn || _horizontal || _statusAreaLength <= 0.0)
+  if (!_fillsColumn || ![_extras count])
     {
       return NSZeroRect;
     }
-  return NSMakeRect(origin.x, NSMaxY(NSMakeRect(origin.x, origin.y, _cellSize,
-						_cellSize)) - _statusAreaLength,
-		    _cellSize, _statusAreaLength);
+  first = [self extraCellAtIndex:0];
+  last = [self extraCellAtIndex:[_extras count] - 1];
+  return NSUnionRect(first, last);
+}
+
+
+- (NSRect) extraCellAtIndex: (NSUInteger)index
+{
+  NSPoint origin;
+
+  if (!_fillsColumn || index >= [_extras count])
+    {
+      return NSZeroRect;
+    }
+  origin = [self cellOriginAtIndex:[_items count] + index];
+  return NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+}
+
+
+- (NSUInteger) extraIndexAtPoint: (NSPoint)p
+{
+  NSUInteger i;
+
+  for (i = 0; i < [_extras count]; i++)
+    {
+      if (NSPointInRect(p, [self extraCellAtIndex:i]))
+	{
+	  return i;
+	}
+    }
+  return NSNotFound;
 }
 
 
@@ -199,6 +229,12 @@
       return DockHoverRecycler;
     }
 
+  index = [self extraIndexAtPoint:p];
+  if (index != NSNotFound)
+    {
+      return DockHoverExtra((NSInteger)index);
+    }
+
   index = [self indexAtPoint:p];
   return index == NSNotFound ? DockHoverNone : (NSInteger)index;
 }
@@ -214,6 +250,11 @@
   if (index == DockHoverRecycler)
     {
       return [self recyclerTileRect];
+    }
+
+  if (DockHoverIsExtra(index))
+    {
+      return [self extraCellAtIndex:(NSUInteger)DockHoverExtraIndex(index)];
     }
 
   if (index >= 0 && index < (NSInteger)[_items count])

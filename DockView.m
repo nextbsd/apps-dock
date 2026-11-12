@@ -27,6 +27,8 @@
   if (self)
     {
       _items = [NSMutableArray new];
+      _extras = [NSMutableArray new];
+      _extraGenerations = [NSMutableDictionary new];
       _draggingPaths = NO;
       _performedDragOperation = NO;
       _lastMouseDownIndex = NSNotFound;
@@ -89,6 +91,8 @@
   DESTROY(_topTileIcon);
   DESTROY(_recyclerIcon);
   DESTROY(_items);
+  DESTROY(_extras);
+  DESTROY(_extraGenerations);
   DESTROY(_dragPasteboard);
   DEALLOC;
 }
@@ -216,12 +220,6 @@
 - (BOOL) fillsColumn
 {
   return _fillsColumn;
-}
-
-- (void) setStatusAreaLength: (CGFloat)length
-{
-  _statusAreaLength = length;
-  [self setNeedsDisplay:YES];
 }
 
 - (void) setPinnedItemCount: (NSUInteger)count
