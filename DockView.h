@@ -22,9 +22,9 @@
 @class DockItem;
 
 /* In a Dock that fills its screen edge, the empty space that sets each
- * section (kept apps, other running apps, minimized windows) off from
- * the one before it, as a fraction of a cell. */
-#define DockSectionGapFraction 0.4
+ * section (kept apps, other running apps, minimized windows, the Dock
+ * extras) off from the one before it, as a fraction of a cell. */
+#define DockSectionGapFraction 0.25
 
 /* Keeps the separate icon windows ordered with the dock on GNUstep. */
 @interface DockWindow : NSWindow

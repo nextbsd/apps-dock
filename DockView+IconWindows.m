@@ -588,16 +588,18 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       else if ([window isVisible]) [window orderOut:nil];
       [(DockIconContentView *)[window contentView] refreshRendering];
     }
-  /* Bound the sections after the pinned apps with narrow, stationary
-   * windows. */
+  /* Bound the sections after the pinned apps, and the Dock extras,
+   * with narrow, stationary windows. */
   NSArray *boundaries = [self sectionBoundaryIndexes];
-  for (NSUInteger edge = 0; edge < [boundaries count]; edge++)
+  for (NSUInteger edge = 0; edge <= [boundaries count]; edge++)
     {
-      NSRect rect = [self separatorRectBeforeIndex:
-			    [[boundaries objectAtIndex:edge] unsignedIntegerValue]];
+      BOOL extras = edge == [boundaries count];
+      NSRect rect = extras ? [self extrasSeparatorRect]
+	: [self separatorRectBeforeIndex:
+		  [[boundaries objectAtIndex:edge] unsignedIntegerValue]];
       if (NSIsEmptyRect(rect)) continue;
-      NSString *key = [NSString stringWithFormat:@"separator-%lu",
-				(unsigned long)edge];
+      NSString *key = extras ? @"separator-extras"
+	: [NSString stringWithFormat:@"separator-%lu", (unsigned long)edge];
       [liveKeys addObject:key];
       NSWindow *window = [_iconWindows objectForKey:key];
       if (!window)
