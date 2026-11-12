@@ -18,6 +18,8 @@
  */
 
 #import "SettingsControllerPrivate.h"
+#import "DockPreferences.h"
+#import "WSDockManager.h"
 
 @implementation SettingsController (Panel)
 
@@ -138,18 +140,34 @@
   _placementPopup =
     [[NSPopUpButton alloc] initWithFrame:NSMakeRect(132, 260, 170, 26)
 			       pullsDown:NO];
-  placements = [NSArray arrayWithObjects:
-			  @"Left Top",
-			@"Left Center",
-			@"Right Top",
-			@"Right Center",
-			@"Top Center",
-			@"Bottom Center",
-			nil];
-  for (i = 0; i < [placements count]; i++)
+  if ([WSDockManager isWindowServerSession])
     {
-      [_placementPopup addItemWithTitle:[placements objectAtIndex:i]];
-      [[_placementPopup itemAtIndex:i] setTag:(NSInteger)i];
+      /* On WindowServer the Dock fills a whole screen edge; each edge
+       * is saved as the DockPlacement that stands for it. */
+      placements = [NSArray arrayWithObjects:
+			      @"Left", @"Right", @"Top", @"Bottom", nil];
+      for (i = 0; i < [placements count]; i++)
+	{
+	  [_placementPopup addItemWithTitle:[placements objectAtIndex:i]];
+	  [[_placementPopup itemAtIndex:i] setTag:
+	     (NSInteger)[DockPreferences placementForEdge:(DockEdge)i]];
+	}
+    }
+  else
+    {
+      placements = [NSArray arrayWithObjects:
+			      @"Left Top",
+			    @"Left Center",
+			    @"Right Top",
+			    @"Right Center",
+			    @"Top Center",
+			    @"Bottom Center",
+			    nil];
+      for (i = 0; i < [placements count]; i++)
+	{
+	  [_placementPopup addItemWithTitle:[placements objectAtIndex:i]];
+	  [[_placementPopup itemAtIndex:i] setTag:(NSInteger)i];
+	}
     }
   [_placementPopup setTarget:self];
   [_placementPopup setAction:@selector(placementChanged:)];

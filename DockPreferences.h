@@ -27,9 +27,14 @@ enum
 + (CGFloat) windowWidthForCellSizeMode: (NSInteger)mode;
 + (NSString *) largerCellSizeTitle;
 + (BOOL) placementIsHorizontal: (DockPlacement)placement;
++ (DockEdge) edgeForPlacement: (DockPlacement)placement;
++ (DockPlacement) placementForEdge: (DockEdge)edge;
 + (NSColor *) calibratedBackgroundColor: (NSColor *)color;
 
 - (DockPlacement) savedDockPlacement;
+/* On WindowServer: one of the four edge placements, right by default. */
+- (DockPlacement) savedWindowServerDockPlacement;
+- (void) saveDockPlacement: (DockPlacement)placement;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor: (NSColor *)color;
 - (CGFloat) savedWindowAlpha;

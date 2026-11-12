@@ -27,19 +27,39 @@
 }
 
 
+/*
+ * Where the tiles sit across the Dock: inset by the padding, or, in a
+ * Dock that fills its screen edge, centred, so that tiles that shrank
+ * to fit a full column or row stay in the middle of it.
+ */
+- (CGFloat) crossOffset
+{
+  NSRect bounds = [self bounds];
+  CGFloat thickness = _horizontal ? NSHeight(bounds) : NSWidth(bounds);
+
+  if (_fillsColumn && thickness > _cellSize)
+    {
+      return floor((thickness - _cellSize) / 2.0);
+    }
+  return _dockPad;
+}
+
+
+/* The Workspace tile: first along the Dock, at the top of a column or
+ * the left end of a row. */
 - (NSRect) topTileRect
 {
   NSRect bounds = [self bounds];
   if (_horizontal)
     {
       return NSMakeRect(_dockPad,
-			_dockPad,
+			[self crossOffset],
 			_cellSize,
 			_cellSize);
     }
   else
     {
-      return NSMakeRect(_dockPad,
+      return NSMakeRect([self crossOffset],
 			NSMaxY(bounds) - _dockPad - _cellSize,
 			_cellSize,
 			_cellSize);
@@ -62,7 +82,7 @@
     }
   else
     {
-      return NSMakePoint(_dockPad,
+      return NSMakePoint(NSMinX(topTile),
 			 NSMinY(topTile) - _dockGap - _cellSize
 			 - slot * (_cellSize + _dockGap));
     }
@@ -73,10 +93,16 @@
 {
   NSPoint origin;
 
-  /* The NextBSD column keeps the Recycler at the bottom. */
-  if (_fillsColumn && !_horizontal)
+  /* A Dock that fills its screen edge keeps the Recycler last, across
+   * the flexible gap: at the bottom of a column, the right end of a row. */
+  if (_fillsColumn && _horizontal)
     {
-      return NSMakeRect(_dockPad, NSMinY([self bounds]) + _dockPad,
+      return NSMakeRect(NSMaxX([self bounds]) - _dockPad - _cellSize,
+			[self crossOffset], _cellSize, _cellSize);
+    }
+  if (_fillsColumn)
+    {
+      return NSMakeRect([self crossOffset], NSMinY([self bounds]) + _dockPad,
 			_cellSize, _cellSize);
     }
   origin = [self cellOriginAtIndex:[_items count]];

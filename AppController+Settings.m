@@ -280,6 +280,11 @@ itemWigglesOnAttentionRequest: (DockItem *)item
      didChangeDockPlacement: (DockPlacement)placement
 {
   _dockPlacement = placement;
+  /* applyDockPlacement saves it under X11 itself. */
+  if ([WSDockManager isWindowServerSession])
+    {
+      [_preferences saveDockPlacement:placement];
+    }
   [self applyDockPlacement];
 }
 

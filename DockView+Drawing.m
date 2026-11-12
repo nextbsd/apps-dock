@@ -402,7 +402,9 @@
       return;
     }
 
-  if (_dropIndex < [_items count])
+  /* After the last item: right after it in a Dock that fills its edge
+   * (the Recycler is across the gap), else before the Recycler. */
+  if (_dropIndex < [_items count] || _fillsColumn)
     {
       NSPoint origin = [self cellOriginAtIndex:_dropIndex];
       cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
@@ -453,10 +455,10 @@
       previousCell = [self topTileRect];
     }
 
-  if (index < [_items count] || (_fillsColumn && !_horizontal))
+  if (index < [_items count] || _fillsColumn)
     {
-      /* In the NextBSD column the last section ends right after its
-       * last item, not at the Recycler across the gap. */
+      /* In a Dock that fills its edge the last section ends right
+       * after its last item, not at the Recycler across the gap. */
       origin = [self cellOriginAtIndex:index];
       nextCell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
     }
