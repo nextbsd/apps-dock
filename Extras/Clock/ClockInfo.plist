@@ -1,0 +1,5 @@
+{
+  CFBundleIdentifier = "org.nextbsd.dockextra.clock";
+  CFBundleName = "Date and Clock";
+  DockExtraDefaultPosition = 40;
+}
