@@ -67,23 +67,94 @@
 }
 
 
+/*
+ * In a Dock that fills its screen edge the items fall into sections,
+ * as on macOS: the kept apps (with the Workspace tile), the running
+ * apps that aren't kept, then the minimized windows. The first item
+ * after the kept apps that is a minimized window starts the last one.
+ */
+- (NSUInteger) firstMinimizedWindowIndex
+{
+  NSUInteger count = [_items count];
+  NSUInteger i;
+
+  for (i = _pinnedItemCount; i < count; i++)
+    {
+      if ([(DockItem *)[_items objectAtIndex:i] kind] == DockItemMinimizedWindow)
+	{
+	  return i;
+	}
+    }
+  return count;
+}
+
+
+/* The empty space that sets a section off from the one before it. */
+- (CGFloat) sectionGap
+{
+  return floor(_cellSize * DockSectionGapFraction);
+}
+
+
+/* Whether the item at index starts a section that gets a separator
+ * before it: only in a Dock that fills its edge, and never for an empty
+ * section (an empty one has no first item). */
+- (BOOL) sectionStartsAtIndex: (NSUInteger)index
+{
+  NSUInteger count = [_items count];
+
+  if (!_fillsColumn || index >= count || index < _pinnedItemCount)
+    {
+      return NO;
+    }
+  return index == _pinnedItemCount || index == [self firstMinimizedWindowIndex];
+}
+
+
+/* How many separators come before the item at index (or after the last
+ * item, for [_items count]). */
+- (NSUInteger) sectionGapsBeforeIndex: (NSUInteger)index
+{
+  NSUInteger count = [_items count];
+  NSUInteger firstWindow;
+  NSUInteger gaps = 0;
+
+  if (!_fillsColumn || _pinnedItemCount >= count)
+    {
+      return 0;
+    }
+  firstWindow = [self firstMinimizedWindowIndex];
+  if (firstWindow > _pinnedItemCount && index >= _pinnedItemCount)
+    {
+      gaps++;
+    }
+  if (firstWindow < count && index >= firstWindow)
+    {
+      gaps++;
+    }
+  return gaps;
+}
+
+
 - (NSPoint) cellOriginAtIndex: (NSUInteger)index
 {
   NSRect topTile = [self topTileRect];
   NSUInteger slot = index;
+  CGFloat sections = [self sectionGapsBeforeIndex:index] * [self sectionGap];
   if (_allowsGaps)
     for (NSUInteger i = 0; i < [_items count] && i <= index; i++)
       if ([[_items objectAtIndex:i] isPinned] && [[_items objectAtIndex:i] gapBefore]) slot++;
 
   if (_horizontal)
     {
-      return NSMakePoint(NSMaxX(topTile) + _dockGap + slot * (_cellSize + _dockGap),
+      return NSMakePoint(NSMaxX(topTile) + _dockGap + sections
+			 + slot * (_cellSize + _dockGap),
 			 NSMinY(topTile));
     }
   else
     {
       return NSMakePoint(NSMinX(topTile),
-			 NSMinY(topTile) - _dockGap - _cellSize
+			 NSMinY(topTile) - _dockGap - _cellSize - sections
 			 - slot * (_cellSize + _dockGap));
     }
 }
@@ -110,9 +181,10 @@
 }
 
 
-/* Where the Dock extras go: right after the last section, before the
- * flexible gap, one cell each, along the Dock whichever edge it is on
- * (only when the Dock fills its screen edge, as on WindowServer). */
+/* Where the Dock extras go: after the flexible gap, one cell each, so
+ * that the last one sits right before the Recycler, along the Dock
+ * whichever edge it is on (only when the Dock fills its screen edge, as
+ * on WindowServer). */
 - (NSRect) statusAreaRect
 {
   NSRect first;
@@ -130,14 +202,23 @@
 
 - (NSRect) extraCellAtIndex: (NSUInteger)index
 {
-  NSPoint origin;
+  NSRect recycler;
+  CGFloat offset;
 
   if (!_fillsColumn || index >= [_extras count])
     {
       return NSZeroRect;
     }
-  origin = [self cellOriginAtIndex:[_items count] + index];
-  return NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+  /* Counted back from the Recycler: the first extra is the furthest. */
+  recycler = [self recyclerTileRect];
+  offset = ([_extras count] - index) * (_cellSize + _dockGap);
+  if (_horizontal)
+    {
+      return NSMakeRect(NSMinX(recycler) - offset, NSMinY(recycler),
+			_cellSize, _cellSize);
+    }
+  return NSMakeRect(NSMinX(recycler), NSMinY(recycler) + offset,
+		    _cellSize, _cellSize);
 }
 
 

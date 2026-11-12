@@ -21,6 +21,11 @@
 
 @class DockItem;
 
+/* In a Dock that fills its screen edge, the empty space that sets each
+ * section (kept apps, other running apps, minimized windows) off from
+ * the one before it, as a fraction of a cell. */
+#define DockSectionGapFraction 0.4
+
 /* Keeps the separate icon windows ordered with the dock on GNUstep. */
 @interface DockWindow : NSWindow
 @end
@@ -149,11 +154,12 @@ typedef enum
 - (BOOL) isHorizontal;
 /*
  * The NextBSD column (WindowServer sessions): the view fills the whole
- * screen edge, top to bottom: the top tile, the items (pinned apps,
- * running apps, minimized windows, each section set off by a
- * separator), the status area for Dock extras, a flexible gap that
- * takes the rest and accepts drops, and the Recycler fixed at the
- * bottom. Otherwise the Recycler follows the last item.
+ * screen edge, top to bottom (left to right in a row): the top tile
+ * and the pinned apps, the running apps that aren't pinned, the
+ * minimized windows (each non-empty section set off by an empty gap
+ * with a thin divider), a flexible gap that takes the rest and accepts
+ * drops, the status area for Dock extras, and the Recycler fixed at
+ * the end. Otherwise the Recycler follows the last item.
  */
 - (void) setFillsColumn: (BOOL)fills;
 - (BOOL) fillsColumn;
@@ -163,7 +169,7 @@ typedef enum
 @interface DockView (Extras)
 /*
  * The status area's Dock extras, top to bottom (objects conforming to
- * DockExtra): one tile each, after the minimized windows, along the
+ * DockExtra): one tile each, right before the Recycler, along the
  * Dock (down a column or across a row) when it fills its screen edge.
  * A click shows the extra's menu, a double-click opens it (when
  * it can), the scroll wheel goes to it, and dragging moves it within the

@@ -206,6 +206,10 @@ DockViewCalibratedBackgroundColor(NSColor *color)
 - (NSRect) separatorRectBeforeIndex: (NSUInteger)index;
 - (NSRect) sectionSeparatorRectAtEnd: (BOOL)atEnd;
 - (NSArray *) sectionBoundaryIndexes;
+- (NSUInteger) firstMinimizedWindowIndex;
+- (CGFloat) sectionGap;
+- (BOOL) sectionStartsAtIndex: (NSUInteger)index;
+- (NSUInteger) sectionGapsBeforeIndex: (NSUInteger)index;
 - (NSRect) statusAreaRect;
 - (NSRect) extraCellAtIndex: (NSUInteger)index;
 - (NSUInteger) extraIndexAtPoint: (NSPoint)p;

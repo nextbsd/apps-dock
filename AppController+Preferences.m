@@ -144,32 +144,74 @@
   return [DockPreferences windowWidthForCellSizeMode:_dockCellSizeMode] * _dockScale;
 }
 
+/* The empty gaps between the Dock's sections on WindowServer: one
+ * before the running apps that aren't kept, one before the minimized
+ * windows, each only when its section has something in it. */
+- (NSUInteger) dockSectionGapCount
+{
+  NSUInteger pinned = [self pinnedApplicationCount];
+  BOOL running = NO;
+  BOOL windows = NO;
+  NSUInteger i;
+
+  for (i = pinned; i < [_items count]; i++)
+    {
+      if ([(DockItem *)[_items objectAtIndex:i] kind] == DockItemMinimizedWindow)
+	windows = YES;
+      else
+	running = YES;
+    }
+  return (running ? 1 : 0) + (windows ? 1 : 0);
+}
+
 /*
  * The cell size: the chosen one, or on WindowServer, where the Dock
  * fills its screen edge, smaller when the column or row is full, so
- * that tiles shrink before anything is hidden.
+ * that tiles shrink before anything is hidden, and back up to the
+ * chosen size as tiles go away. The Dock calls this whenever its items
+ * (apps, minimized windows) or extras change.
  */
 - (CGFloat) activeDockCellSize
 {
   CGFloat cell = [DockPreferences dockCellSize] * _dockScale;
   CGFloat gap = [self activeDockGap];
   CGFloat available;
+  CGFloat cells;
   NSUInteger count;
+  NSRect frame;
 
   if (![WSDockManager isWindowServerSession])
     {
       return cell;
     }
-  /* The top tile, every item, the Dock extras and the Recycler; the
+  /* The top tile, every item (minimized windows too), the Dock extras
+   * and the Recycler, plus the gaps between sections, which are a
+   * fraction of a cell, and any empty slots before kept apps; the
    * flexible gap can be empty. */
   count = [_items count] + [self dockExtraCount] + 2;
-  available = ([DockPreferences placementIsHorizontal:_dockPlacement]
-	       ? NSWidth([[NSScreen mainScreen] frame])
-	       : NSHeight([[NSScreen mainScreen] frame]))
-    - 2.0 * [self activeDockPad];
-  if (count * cell + (count - 1) * gap > available)
+  if ([_preferences savedAllowsGaps])
     {
-      cell = floor((available - (count - 1) * gap) / count);
+      NSUInteger i;
+
+      for (i = 0; i < [_items count]; i++)
+	{
+	  DockItem *item = [_items objectAtIndex:i];
+
+	  if ([item isPinned] && [item gapBefore])
+	    count++;
+	}
+    }
+  cells = count + [self dockSectionGapCount] * DockSectionGapFraction;
+  /* Along the Dock's own frame: below the Mac menu bar, if any. */
+  frame = [self windowServerDockFrameForEdge:
+		  [DockPreferences edgeForPlacement:_dockPlacement]
+				   thickness:[self activeDockWindowWidth]];
+  available = ([DockPreferences placementIsHorizontal:_dockPlacement]
+	       ? NSWidth(frame) : NSHeight(frame))
+    - 2.0 * [self activeDockPad];
+  if (cells * cell + (count - 1) * gap > available)
+    {
+      cell = floor((available - (count - 1) * gap) / cells);
       if (cell < 24.0)
 	{
 	  cell = 24.0;
