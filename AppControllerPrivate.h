@@ -28,6 +28,13 @@
 #import <signal.h>
 #import <unistd.h>
 
+/* The request other apps send to keep apps in the Dock (Workspace's
+ * File > Add to Dock): a distributed notification whose userInfo's
+ * "paths" lists application bundle paths, kept in that order at the end
+ * of the kept apps, as if dropped there. See the README. */
+#define DockKeepApplicationsNotification @"org.nextbsd.Dock.KeepApplications"
+#define DockKeepApplicationsPathsKey @"paths"
+
 @interface AppController (SettingsDelegate) <SettingsControllerDelegate>
 @end
 
@@ -61,6 +68,7 @@
 @interface AppController (Private)
 - (DockPlacement) savedDockPlacement;
 - (void) desktopSettingsDidChange: (NSNotification *)notification;
+- (void) keepApplicationsRequested: (NSNotification *)notification;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor;
 - (CGFloat) savedWindowAlpha;

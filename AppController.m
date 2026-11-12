@@ -132,6 +132,14 @@
 	   name:DockDesktopSettingsChangedNotification
 	 object:nil];
 
+  /* Other apps keep apps in the Dock by asking it (Workspace's File >
+   * Add to Dock); the Dock owns its list. */
+  [[NSDistributedNotificationCenter defaultCenter]
+    addObserver:self
+       selector:@selector(keepApplicationsRequested:)
+	   name:DockKeepApplicationsNotification
+	 object:nil];
+
   [self performSelector:@selector(performInitialApplicationScans)
 	     withObject:nil
 	     afterDelay:0.5];

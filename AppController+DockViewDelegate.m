@@ -211,6 +211,50 @@
     }
 }
 
+/*
+ * org.nextbsd.Dock.KeepApplications: keep the apps whose bundle paths
+ * the userInfo's "paths" lists, in that order, at the end of the kept
+ * apps, exactly as if they were dropped there. A kept app stays where
+ * it is; a running app moves up from the running apps. Anything that
+ * isn't an application bundle on disk is ignored.
+ */
+- (void) keepApplicationsRequested: (NSNotification *)notification
+{
+  id paths = [[notification userInfo] objectForKey:DockKeepApplicationsPathsKey];
+  NSMutableArray *bundles = [NSMutableArray array];
+  NSUInteger i;
+
+  if ([paths isKindOfClass:[NSString class]])
+    {
+      paths = [NSArray arrayWithObject:paths];
+    }
+  if (![paths isKindOfClass:[NSArray class]])
+    {
+      return;
+    }
+  for (i = 0; i < [paths count]; i++)
+    {
+      id path = [paths objectAtIndex:i];
+      BOOL isDir = NO;
+
+      if (![path isKindOfClass:[NSString class]] || ![path isAbsolutePath])
+	{
+	  continue;
+	}
+      path = [path stringByStandardizingPath];
+      if ([[[path pathExtension] lowercaseString] isEqualToString:@"app"] &&
+	  [[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir] &&
+	  isDir)
+	{
+	  [bundles addObject:path];
+	}
+    }
+  if ([bundles count])
+    {
+      [self dockViewDidReceivePaths:bundles];
+    }
+}
+
 /* Whether an app's tile stands for a process that is running now. */
 - (BOOL) applicationItemIsRunning: (DockItem *)item
 {
