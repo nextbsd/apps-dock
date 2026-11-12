@@ -25,18 +25,29 @@
  * The Dock's frame on WindowServer: the whole of one screen edge,
  * `thickness` deep.
  *
- * Not built yet: the Mac menu bar (nextbsd/libs-back#3). When it shows
- * and the Dock is on the top edge, the Dock sits directly below the bar,
- * pushed down by the bar's height (which WindowServer or the backend
- * will tell the Dock): subtract it from the top edge here, and report
- * the Dock's strip below the bar to WindowServer (reportDockEdge), so
- * that tiling keeps both the bar's strip and the Dock's free. The Dock
+ * In the Mac menu style (NBMenuStyle macmenubar, nextbsd/libs-back#3)
+ * the active app's menu bar runs along the top of the screen, and
+ * WindowServer says how tall it is (-[WSDockManager menuBarHeight]). The
+ * Dock stays below it: a top Dock sits directly below the bar, and a
+ * left or right one starts there. The strip the Dock reports
+ * (reportDockEdge) is its own thickness, which WindowServer counts from
+ * the bar's bottom edge, so tiling keeps both strips free. The Dock
  * never moves to another edge on its own.
  */
 - (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
 			      thickness: (CGFloat)thickness
 {
   NSRect screen = [[NSScreen mainScreen] frame];
+  CGFloat bar = 0;
+
+  if ([_windowManager respondsToSelector:@selector(menuBarHeight)])
+    {
+      bar = [(WSDockManager *)_windowManager menuBarHeight];
+    }
+  if (bar > 0 && bar < NSHeight(screen) / 2)
+    {
+      screen.size.height -= bar;
+    }
 
   switch (edge)
     {
