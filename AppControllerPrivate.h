@@ -115,6 +115,7 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (void) pruneApplicationIconUpdatesForExitedProcesses;
 - (BOOL) applicationBundlePathIsDockWM: (NSString *)path;
 - (BOOL) applicationBundlePathIsWorkspace: (NSString *)path;
+- (BOOL) applicationBundlePathIsCoreService: (NSString *)path;
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path;
 - (NSString *) workspaceApplicationPath;
 - (NSImage *) workspaceIcon;

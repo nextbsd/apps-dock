@@ -24,17 +24,28 @@
 - (void) loadPersistedApplications
 {
   NSInteger i;
+  BOOL droppedCoreService = NO;
 
   [_applicationStore loadPersistedApplicationsIntoItems:_items];
   for (i = [_items count] - 1; i >= 0; i--)
     {
       NSString *path = [[_items objectAtIndex:i] path];
 
-      if (![self applicationPathIsKeptInDock:path] ||
+      if ([self applicationBundlePathIsCoreService:path])
+        {
+          /* Pinned by an older dock: forget it for good. */
+          [_items removeObjectAtIndex:i];
+          droppedCoreService = YES;
+        }
+      else if (![self applicationPathIsKeptInDock:path] ||
           [self applicationBundlePathIsWorkspace:path])
         {
           [_items removeObjectAtIndex:i];
         }
+    }
+  if (droppedCoreService)
+    {
+      [self savePersistedApplications];
     }
 }
 
@@ -356,6 +367,17 @@
     [bundleName isEqualToString:@"fileviewer.app"];
 }
 
+/* As on macOS, apps under /System/Library/CoreServices (loginwindow and the
+ * like) are system UI and never appear in the dock. */
+- (BOOL) applicationBundlePathIsCoreService: (NSString *)path
+{
+  NSString *bundlePath = [DockItem applicationBundlePathForPath:path];
+
+  return [_applicationScanner
+	   path:([bundlePath length] ? bundlePath : path)
+	   isEqualToOrDescendantOfPath:@"/System/Library/CoreServices"];
+}
+
 /* Workspace.app from the first Applications folder that has it, or nil. */
 - (NSString *) workspaceApplicationPath
 {
@@ -384,11 +406,14 @@
   return [path length] ? [[NSWorkspace sharedWorkspace] iconForFile:path] : nil;
 }
 
-/* Apps the dock shows itself rather than as items: DockWM and Workspace. */
+/* Apps that never get an item of their own: DockWM and Workspace, which the
+ * dock shows itself, and the system UI in CoreServices, which it never
+ * shows. */
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path
 {
   return [self applicationBundlePathIsDockWM:path] ||
-    [self applicationBundlePathIsWorkspace:path];
+    [self applicationBundlePathIsWorkspace:path] ||
+    [self applicationBundlePathIsCoreService:path];
 }
 
 - (void) rememberLaunchedApplicationPath: (NSString *)path
