@@ -107,8 +107,9 @@
 }
 
 /*
- * The cell size: the chosen one, or in the NextBSD column, smaller when
- * the column is full, so that tiles shrink before anything is hidden.
+ * The cell size: the chosen one, or on WindowServer, where the Dock
+ * fills its screen edge, smaller when the column or row is full, so
+ * that tiles shrink before anything is hidden.
  */
 - (CGFloat) activeDockCellSize
 {
@@ -124,7 +125,10 @@
   /* The top tile, every item, the Dock extras and the Recycler; the
    * flexible gap can be empty. */
   count = [_items count] + [self dockExtraCount] + 2;
-  available = NSHeight([[NSScreen mainScreen] frame]) - 2.0 * [self activeDockPad];
+  available = ([DockPreferences placementIsHorizontal:_dockPlacement]
+	       ? NSWidth([[NSScreen mainScreen] frame])
+	       : NSHeight([[NSScreen mainScreen] frame]))
+    - 2.0 * [self activeDockPad];
   if (count * cell + (count - 1) * gap > available)
     {
       cell = floor((available - (count - 1) * gap) / count);

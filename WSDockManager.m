@@ -57,6 +57,7 @@ static NSString * const WSDockFrameKey = @"frame";
 - (NSSize) getSizeWindow;
 #ifdef DOCK_HAVE_WINDOWSERVER
 - (void) reloadWindowList;
+- (void) sendDockEdge;
 - (void) scheduleWindowListReload;
 - (void) refreshPreviews;
 - (void) registerIconManager;
@@ -163,10 +164,31 @@ watchedModes(void)
   /* With MinimizeIntoDock on, WindowServer hands the minimized windows
    * to this Dock instead of drawing tiles (WS_EVENT_DOCK_STATE). */
   ws_dock_show_minimized(conn, 1);
+  [self sendDockEdge];
   [self startWatching];
   [self registerIconManager];
   [self reloadWindowList];
   return YES;
+}
+
+/* WS_MSG_DOCK_SET_EDGE, on servers that have it. */
+- (void) sendDockEdge
+{
+#ifdef WS_SERVER_DOCK_EDGE
+  static const uint32_t edges[] = {
+    [DockEdgeLeft] = WS_DOCK_EDGE_LEFT,
+    [DockEdgeRight] = WS_DOCK_EDGE_RIGHT,
+    [DockEdgeTop] = WS_DOCK_EDGE_TOP,
+    [DockEdgeBottom] = WS_DOCK_EDGE_BOTTOM
+  };
+
+  if (_connection && _edgeKnown &&
+      (ws_server_flags((ws_connection_t *)_connection) & WS_SERVER_DOCK_EDGE))
+    {
+      ws_dock_set_edge((ws_connection_t *)_connection, edges[_edge],
+		       _edgeThickness);
+    }
+#endif
 }
 
 - (void) startWatching
@@ -849,6 +871,22 @@ imageFromSnapshot(const ws_snapshot_t *snap)
 
 - (void) setDockPlacement: (DockPlacement)placement
 {
+}
+
+- (void) setDockEdge: (DockEdge)edge thickness: (CGFloat)thickness
+{
+  unsigned int pixels = thickness > 0 ? (unsigned int)ceil(thickness) : 0;
+
+  if (_edgeKnown && _edge == edge && _edgeThickness == pixels)
+    {
+      return;
+    }
+  _edgeKnown = YES;
+  _edge = edge;
+  _edgeThickness = pixels;
+#ifdef DOCK_HAVE_WINDOWSERVER
+  [self sendDockEdge];
+#endif
 }
 
 /* Under WindowServer, where minimized windows go is WindowServer's

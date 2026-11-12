@@ -173,12 +173,15 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (void) emptyRecyclerPath: (NSString *)path;
 - (void) emptyRecycler: (id)sender;
 - (NSRect) dockWindowFrameForPlacement: (DockPlacement)placement;
+- (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
+			      thickness: (CGFloat)thickness;
 - (void) updateDockMenu;
 - (NSMenu *) dockMenu;
 - (SettingsController *) settingsController;
 - (void) showSettingsPanel: (id)sender;
 - (void) showSettingsForDockItem: (DockItem *)item;
 - (void) applyDockPlacement;
+- (void) reportDockEdge;
 - (void) updateDockBackground;
 - (void) startLaunchWiggleForItem: (DockItem *)item;
 - (void) startActivationWiggleForItem: (DockItem *)item;

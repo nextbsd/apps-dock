@@ -49,6 +49,7 @@
   NSUInteger index = [self indexAtPoint:location];
   NSUInteger extraIndex = [self extraIndexAtPoint:location];
   NSMenu *contextMenu = nil;
+  NSRect cell = NSZeroRect;
 
   [self hideTooltip];
 
@@ -61,17 +62,27 @@
   if ([self topIconContainsPoint:location])
     {
       contextMenu = [self menu];
+      cell = [self topTileRect];
     }
   else if ([self recyclerContainsPoint:location])
     {
       contextMenu = [self menuForRecycler];
+      cell = [self recyclerTileRect];
     }
   else if (index != NSNotFound && index < [_items count])
     {
       contextMenu = [self menuForDockItem:[_items objectAtIndex:index]];
+      cell = [self cellRectForHoverIndex:(NSInteger)index];
     }
 
-  if (contextMenu)
+  /* A Dock that fills its screen edge (WindowServer) opens menus beside
+   * the tile, toward the middle of the screen, on every edge. */
+  if (contextMenu && _fillsColumn)
+    {
+      [self showMenu:contextMenu besideScreenRect:[self screenRectForCell:cell]
+	       event:event];
+    }
+  else if (contextMenu)
     {
       [NSMenu popUpContextMenu:contextMenu withEvent:event forView:self];
     }

@@ -152,6 +152,12 @@ DockViewCalibratedBackgroundColor(NSColor *color)
 - (BOOL) topIconContainsPoint: (NSPoint)p;
 - (NSInteger) hoverIndexAtPoint: (NSPoint)p;
 - (NSRect) cellRectForHoverIndex: (NSInteger)index;
+- (NSRect) screenRectForCell: (NSRect)cell;
+- (NSRect) frameForPanelOfSize: (NSSize)size besideScreenRect: (NSRect)tile;
+- (void) showMenu: (NSMenu *)menu
+ besideScreenRect: (NSRect)tile
+	    event: (NSEvent *)event;
+- (CGFloat) crossOffset;
 - (NSString *) tooltipTitleForHoverIndex: (NSInteger)index;
 - (void) hideTooltip;
 - (NSMenuItem *) menuItemWithTitle: (NSString *)title

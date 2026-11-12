@@ -66,6 +66,96 @@ static NSString *DockScaleDefaultsKey = @"DockScale";
   return placement == DockPlacementTopCenter || placement == DockPlacementBottomCenter;
 }
 
++ (DockEdge) edgeForPlacement: (DockPlacement)placement
+{
+  switch (placement)
+    {
+    case DockPlacementLeftTop:
+    case DockPlacementLeftCenter:
+      return DockEdgeLeft;
+    case DockPlacementTopCenter:
+      return DockEdgeTop;
+    case DockPlacementBottomCenter:
+      return DockEdgeBottom;
+    case DockPlacementRightTop:
+    case DockPlacementRightCenter:
+    default:
+      return DockEdgeRight;
+    }
+}
+
++ (DockPlacement) placementForEdge: (DockEdge)edge
+{
+  switch (edge)
+    {
+    case DockEdgeLeft:
+      return DockPlacementLeftTop;
+    case DockEdgeTop:
+      return DockPlacementTopCenter;
+    case DockEdgeBottom:
+      return DockPlacementBottomCenter;
+    case DockEdgeRight:
+    default:
+      return DockPlacementRightTop;
+    }
+}
+
+/*
+ * The DockPlacement default as a placement: a number (0 to 5), or an
+ * edge's name, so that `defaults write DockWM DockPlacement top` works
+ * as well as `... DockPlacement 4`. NO when it is neither.
+ */
+static BOOL
+placementFromDefault(id value, DockPlacement *placement)
+{
+  NSInteger number;
+
+  if ([value isKindOfClass:[NSString class]])
+    {
+      NSString *name = [[value stringByTrimmingCharactersInSet:
+	[NSCharacterSet whitespaceCharacterSet]] lowercaseString];
+
+      if ([name isEqualToString:@"left"])
+	{
+	  *placement = DockPlacementLeftTop;
+	  return YES;
+	}
+      if ([name isEqualToString:@"right"])
+	{
+	  *placement = DockPlacementRightTop;
+	  return YES;
+	}
+      if ([name isEqualToString:@"top"])
+	{
+	  *placement = DockPlacementTopCenter;
+	  return YES;
+	}
+      if ([name isEqualToString:@"bottom"])
+	{
+	  *placement = DockPlacementBottomCenter;
+	  return YES;
+	}
+      if ([name length] == 0 ||
+	  [name rangeOfCharacterFromSet:
+	    [[NSCharacterSet decimalDigitCharacterSet] invertedSet]].location
+	  != NSNotFound)
+	{
+	  return NO;
+	}
+    }
+  else if (![value isKindOfClass:[NSNumber class]])
+    {
+      return NO;
+    }
+  number = [value integerValue];
+  if (number < DockPlacementLeftTop || number > DockPlacementBottomCenter)
+    {
+      return NO;
+    }
+  *placement = (DockPlacement)number;
+  return YES;
+}
+
 + (NSColor *) calibratedBackgroundColor: (NSColor *)color
 {
   NSColor *rgbColor = nil;
@@ -107,15 +197,11 @@ static NSString *DockScaleDefaultsKey = @"DockScale";
 - (DockPlacement) savedDockPlacement
 {
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-  id savedPlacement = [defaults objectForKey:@"DockPlacement"];
+  DockPlacement placement;
 
-  if (savedPlacement)
+  if (placementFromDefault([defaults objectForKey:@"DockPlacement"], &placement))
     {
-      NSInteger placement = [defaults integerForKey:@"DockPlacement"];
-      if (placement >= DockPlacementLeftTop && placement <= DockPlacementBottomCenter)
-	{
-	  return (DockPlacement)placement;
-	}
+      return placement;
     }
 
   if ([defaults boolForKey:@"DockOnRight"])
@@ -124,6 +210,30 @@ static NSString *DockScaleDefaultsKey = @"DockScale";
     }
 
   return [defaults boolForKey:@"DockCentered"] ? DockPlacementLeftCenter : DockPlacementLeftTop;
+}
+
+/*
+ * On WindowServer the Dock fills a whole screen edge: the saved
+ * placement's edge, or the right edge when none is saved (X11's
+ * DockOnRight and DockCentered don't apply).
+ */
+- (DockPlacement) savedWindowServerDockPlacement
+{
+  DockPlacement placement;
+
+  if (!placementFromDefault([[NSUserDefaults standardUserDefaults]
+			      objectForKey:@"DockPlacement"], &placement))
+    {
+      return DockPlacementRightTop;
+    }
+  return [DockPreferences placementForEdge:
+			    [DockPreferences edgeForPlacement:placement]];
+}
+
+- (void) saveDockPlacement: (DockPlacement)placement
+{
+  [[NSUserDefaults standardUserDefaults] setInteger:placement
+					     forKey:@"DockPlacement"];
 }
 
 - (NSColor *) savedBackgroundColor

@@ -32,6 +32,20 @@ typedef enum
     DockPlacementBottomCenter
   } DockPlacement;
 
+/*
+ * The screen edge of a Dock that fills its edge (on NextBSD's
+ * WindowServer). DockPlacement still names it there: the left and right
+ * placements are the left and right edges, Top Center the top edge and
+ * Bottom Center the bottom edge.
+ */
+typedef enum
+  {
+    DockEdgeLeft = 0,
+    DockEdgeRight,
+    DockEdgeTop,
+    DockEdgeBottom
+  } DockEdge;
+
 @protocol X11DockManagerDelegate
 - (void) x11DockManagerDidDiscoverWindowWithTitle: (NSString *)title
                                            window: (unsigned long)xWindow

@@ -25,16 +25,17 @@
 {
   NSUInteger i;
 
-  /* WindowServer sessions keep the Dock on the right and leave the
-   * placement setting alone for X11. */
+  /* WindowServer sessions fill one of the four screen edges, and only
+   * the Settings window saves a new one there (the X11 placements a
+   * WindowServer edge stands for are left as they are). */
   if ([WSDockManager isWindowServerSession])
     {
-      _dockPlacement = DockPlacementRightTop;
+      _dockPlacement = [DockPreferences placementForEdge:
+			  [DockPreferences edgeForPlacement:_dockPlacement]];
     }
   else
     {
-      [[NSUserDefaults standardUserDefaults] setInteger:_dockPlacement
-						 forKey:@"DockPlacement"];
+      [_preferences saveDockPlacement:_dockPlacement];
     }
   [self applyDockCellSizeToView];
   [_dockView setHorizontal:[DockPreferences placementIsHorizontal:_dockPlacement]];
@@ -44,6 +45,7 @@
                                  NSWidth([_window frame]),
                                  NSHeight([_window frame]))];
   [_windowManager setDockPlacement:_dockPlacement];
+  [self reportDockEdge];
   for (i = 0; i < [_items count]; i++)
     {
       DockItem *item = [_items objectAtIndex:i];
@@ -55,6 +57,24 @@
     }
   [self updateDockBackground];
   [self updateDockMenu];
+}
+
+/*
+ * Tell WindowServer which edge the Dock keeps and how thick it is, so
+ * that tiling keeps that strip free. X11 has no such request.
+ */
+- (void) reportDockEdge
+{
+  NSRect frame = [_window frame];
+  DockEdge edge = [DockPreferences edgeForPlacement:_dockPlacement];
+
+  if ([_windowManager respondsToSelector:@selector(setDockEdge:thickness:)])
+    {
+      [(WSDockManager *)_windowManager setDockEdge:edge
+					 thickness:(edge == DockEdgeLeft
+						    || edge == DockEdgeRight)
+					  ? NSWidth(frame) : NSHeight(frame)];
+    }
 }
 
 - (void) updateDockBackground

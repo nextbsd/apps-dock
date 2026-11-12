@@ -121,7 +121,28 @@
 
 - (NSRect) frameForPanelOfSize: (NSSize)size besideExtra: (id)extra
 {
-  NSRect tile = [self screenFrameForExtra:extra];
+  return [self frameForPanelOfSize:size
+		  besideScreenRect:[self screenFrameForExtra:extra]];
+}
+
+
+/* A tile's frame on the screen (a cell of this view). */
+- (NSRect) screenRectForCell: (NSRect)cell
+{
+  if (NSIsEmptyRect(cell) || ![self window])
+    {
+      return NSZeroRect;
+    }
+  cell.origin = [[self window] convertBaseToScreen:
+				 [self convertPoint:cell.origin toView:nil]];
+  return cell;
+}
+
+
+/* Beside the tile at `tile` (screen coordinates), toward the middle of
+ * the screen, whichever edge the Dock is on, and on the screen. */
+- (NSRect) frameForPanelOfSize: (NSSize)size besideScreenRect: (NSRect)tile
+{
   NSScreen *screen = [[self window] screen];
   NSRect visible;
   NSRect frame = NSMakeRect(0, 0, size.width, size.height);
@@ -171,8 +192,6 @@
 - (void) showMenuForExtra: (id)extra event: (NSEvent *)event
 {
   NSMenu *menu = nil;
-  NSMenuView *view;
-  NSRect frame;
 
   NS_DURING
     menu = [(id <DockExtra>)extra menuForEvent:event];
@@ -183,12 +202,25 @@
     {
       return;
     }
-  /* What +popUpContextMenu: does, but with the menu moved beside the
-   * tile: GNUstep opens a context menu at the pointer. */
+  [self showMenu:menu besideScreenRect:[self screenFrameForExtra:extra]
+	   event:event];
+}
+
+
+/* What +popUpContextMenu: does, but with the menu beside the tile,
+ * toward the middle of the screen, whichever edge the Dock is on:
+ * GNUstep opens a context menu at the pointer. */
+- (void) showMenu: (NSMenu *)menu
+ besideScreenRect: (NSRect)tile
+	    event: (NSEvent *)event
+{
+  NSMenuView *view;
+  NSRect frame;
+
   [menu displayTransient];
   view = [menu menuRepresentation];
   frame = [self frameForPanelOfSize:[[view window] frame].size
-			besideExtra:extra];
+		   besideScreenRect:tile];
   [[view window] setFrameOrigin:frame.origin];
   [view mouseDown:event];
   [menu closeTransient];

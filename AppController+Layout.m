@@ -21,6 +21,41 @@
 
 @implementation AppController (Layout)
 
+/*
+ * The Dock's frame on WindowServer: the whole of one screen edge,
+ * `thickness` deep.
+ *
+ * Not built yet: the Mac menu bar (nextbsd/libs-back#3). When it shows
+ * and the Dock is on the top edge, the Dock sits directly below the bar,
+ * pushed down by the bar's height (which WindowServer or the backend
+ * will tell the Dock): subtract it from the top edge here, and report
+ * the Dock's strip below the bar to WindowServer (reportDockEdge), so
+ * that tiling keeps both the bar's strip and the Dock's free. The Dock
+ * never moves to another edge on its own.
+ */
+- (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
+			      thickness: (CGFloat)thickness
+{
+  NSRect screen = [[NSScreen mainScreen] frame];
+
+  switch (edge)
+    {
+    case DockEdgeLeft:
+      return NSMakeRect(NSMinX(screen), NSMinY(screen),
+			thickness, NSHeight(screen));
+    case DockEdgeTop:
+      return NSMakeRect(NSMinX(screen), NSMaxY(screen) - thickness,
+			NSWidth(screen), thickness);
+    case DockEdgeBottom:
+      return NSMakeRect(NSMinX(screen), NSMinY(screen),
+			NSWidth(screen), thickness);
+    case DockEdgeRight:
+    default:
+      return NSMakeRect(NSMaxX(screen) - thickness, NSMinY(screen),
+			thickness, NSHeight(screen));
+    }
+}
+
 - (NSRect) dockWindowFrameForPlacement: (DockPlacement)placement
 {
   NSRect screenFrame = [[NSScreen mainScreen] frame];
@@ -38,13 +73,13 @@
   CGFloat x;
   CGFloat y;
 
-  /* On WindowServer the Dock is the whole right edge (DockView's
-   * column), whatever the placement setting says for X11. */
+  /* On WindowServer the Dock fills a whole screen edge: a column on the
+   * left or right, a row along the top or bottom. */
   if ([WSDockManager isWindowServerSession])
     {
-      placement = DockPlacementRightTop;
-      width = thickness;
-      height = NSHeight(screenFrame);
+      return [self windowServerDockFrameForEdge:
+		     [DockPreferences edgeForPlacement:placement]
+				      thickness:thickness];
     }
   if (height > NSHeight(screenFrame))
     {

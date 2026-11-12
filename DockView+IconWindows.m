@@ -446,10 +446,17 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
     [self convertPoint:cell.origin toView:nil]];
   CGFloat offset = start ? [self bounceOffsetAtTime:now - start] : 0.0;
   NSRect screen = [[[self window] screen] frame];
-  BOOL atTop = _horizontal && NSMaxY([[self window] frame]) >= NSMaxY(screen) - 1.0;
+  NSRect dock = [[self window] frame];
+  BOOL atTop = _horizontal && NSMaxY(dock) >= NSMaxY(screen) - 1.0;
   NSRect frame;
 
-  origin.y += atTop ? -offset : offset;
+  /* Icons bounce away from the edge, toward the middle of the screen:
+   * up from the bottom, down from the top, and in a Dock that fills a
+   * side edge (WindowServer), sideways. */
+  if (_fillsColumn && !_horizontal)
+    origin.x += NSMidX(dock) > NSMidX(screen) ? -offset : offset;
+  else
+    origin.y += atTop ? -offset : offset;
   origin.x = round(origin.x);
   origin.y = round(origin.y);
   frame = NSMakeRect(origin.x, origin.y, cell.size.width, cell.size.height);

@@ -35,11 +35,11 @@
   _applicationIconManager = [[ApplicationIconManager alloc]
 			      initWithScanner:_applicationScanner];
   _launchedApplicationPaths = [NSMutableSet new];
-  _dockPlacement = [self savedDockPlacement];
-  if ([WSDockManager isWindowServerSession])
-    {
-      _dockPlacement = DockPlacementRightTop;
-    }
+  /* On WindowServer the Dock fills the screen edge it's on: left,
+   * right (the default), top or bottom. */
+  _dockPlacement = [WSDockManager isWindowServerSession]
+    ? [_preferences savedWindowServerDockPlacement]
+    : [self savedDockPlacement];
   _dockCellSizeMode = [self savedDockCellSizeMode];
   _runningIndicatorMode = [self savedRunningIndicatorMode];
   _backgroundColor = RETAIN([self savedBackgroundColor]);
@@ -107,6 +107,7 @@
       [ws setDelegate:self];
       [ws setHidesMiniwindows:_hidesMiniwindows];
       [ws start];
+      [self reportDockEdge];
       [self loadDockExtras];
     }
   else

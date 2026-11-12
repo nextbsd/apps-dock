@@ -38,11 +38,30 @@ apps-windowserver's README). It's built when pkg-config finds
   attention requests (`-requestUserAttention:`) reach the Dock. Asked where
   to put an app icon window or miniwindow, the Dock answers with the
   window's own frame.
-- **Layout:** the Dock is always the right edge, top to bottom: the
-  Workspace tile, pinned apps, running apps, minimized windows (each section
-  set off by a separator), the status area for Dock extras, a flexible gap
-  that takes drops, and the Recycler fixed at the bottom. When the column is
-  full, tiles shrink. The placement setting is kept for X11.
+- **Layout:** the Dock fills one whole screen edge, the right edge unless
+  set otherwise (see "Placement" below). Along it, top to bottom in a
+  column or left to right in a row: the Workspace tile, pinned apps,
+  running apps, minimized windows (each section set off by a separator,
+  turned across a row), the status area for Dock extras, a flexible gap
+  that takes drops, and the Recycler last, at the bottom of a column or
+  the right end of a row. When the column or row is full, tiles shrink.
+- **Placement:** `DockPlacement` picks the edge: the left placements (0,
+  1) are the left edge, the right ones (2, 3) the right edge, Top Center
+  (4) the top edge and Bottom Center (5) the bottom edge. The edge's name
+  works too. With no `DockPlacement` the Dock is on the right. Change it
+  in **Settings → Dock → Placement** (Left, Right, Top, Bottom), which
+  moves the Dock at once, or with `defaults write DockWM DockPlacement
+  top` (or `left`, `right`, `bottom`) and a restart of the Dock. Workspace
+  Preferences will offer the setting later (nextbsd/apps-workspace#21).
+  On every edge, menus and Dock extras' panels open beside their tile
+  toward the middle of the screen, tooltips point back at the tile, and
+  icons bounce away from the edge, into the screen.
+- **The Dock's edge for WindowServer:** the Dock reports the edge it fills
+  and its thickness (`ws_dock_set_edge()`, on servers with
+  `WS_SERVER_DOCK_EDGE`) when it connects and whenever either changes, so
+  that window tiling can keep that strip free. `wsctl dock list` shows it.
+  A Mac-style menu bar (nextbsd/libs-back#3) isn't built yet; when it is,
+  a Dock on the top edge will sit directly below it.
 
 ### Dock extras
 
@@ -298,8 +317,9 @@ separate shaped, non-focusable windows. There is no visible dock background
 or border. Two thin separator windows bracket the unpinned application section
 when it contains apps. State dots remain stationary while icons bounce and are
 removed when their state no longer matches the selected indicator mode.
-Icon windows move through a large vertical hop and a smaller settling hop;
-a top-edge dock bounces downward into the screen. Attention requests repeat
+Icon windows move through a large hop and a smaller settling hop, away
+from the Dock's edge: up from the bottom, down from the top, and on
+WindowServer, sideways from a left or right edge (X11 side docks hop up). Attention requests repeat
 until acknowledged. Bounce frames move the existing buffered windows without
 redrawing icons or rebuilding their shapes. The drop marker window exists only
 during a drag. Rendered overlays are cached: unchanged refreshes and exposure
