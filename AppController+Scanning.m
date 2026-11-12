@@ -114,11 +114,29 @@
         }
     }
 
+  if (!processPaths)
+    {
+      processPaths = [self runningProcessExecutablePaths];
+    }
+  [self updateTopTileWithProcessPaths:processPaths];
+
   if (changed)
     {
       [self pruneApplicationIconUpdatesForExitedProcesses];
       [self refreshDock];
     }
+}
+
+/* The top tile is Workspace's: it shows the running indicator whenever
+ * Workspace runs, with or without windows. */
+- (void) updateTopTileWithProcessPaths: (NSArray *)processPaths
+{
+  NSString *path = [self workspaceApplicationPath];
+  BOOL running = [path length] &&
+    [self applicationItemHasRunningProcess:[DockItem applicationItemWithPath:path]
+				     paths:processPaths];
+
+  [_dockView setTopTileRunning:running];
 }
 
 - (void) scanRunningApplications
@@ -128,6 +146,7 @@
   NSUInteger i;
 
   [self pruneApplicationIconUpdatesForExitedProcesses];
+  [self updateTopTileWithProcessPaths:processPaths];
 
   for (i = 0; i < [_items count]; i++)
     {

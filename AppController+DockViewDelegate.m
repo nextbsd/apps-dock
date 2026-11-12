@@ -485,7 +485,16 @@
 
 - (void) dockViewDidActivateItem: (DockItem *)item
 {
-  NSArray *minimized = [self dockView:_dockView minimizedWindowsForItem:item];
+  NSArray *minimized;
+
+  if ([item kind] == DockItemApplication && [item state] != DockItemNotRunning &&
+      [self reopenRunningApplicationAtPath:[DockItem applicationBundlePathForPath:[item path]]])
+    {
+      [_windowManager drainTransientIconEvents];
+      [self startActivationWiggleForItem:item];
+      return;
+    }
+  minimized = [self dockView:_dockView minimizedWindowsForItem:item];
 
   if ([minimized count] || [self dockView:_dockView canRestoreItem:item])
     {
@@ -536,9 +545,11 @@
       return;
     }
   item = [DockItem applicationItemWithPath:path];
-  /* NSWorkspace asks the running app to activate itself. */
+  /* A running Workspace reopens: it brings a File Viewer forward, or
+   * opens one. Failing that, NSWorkspace asks it to activate itself. */
   if ([[self runningProcessIdentifiersForApplicationItem:item] count] > 0 &&
-      [[NSWorkspace sharedWorkspace] launchApplication:path])
+      ([self reopenRunningApplicationAtPath:path] ||
+       [[NSWorkspace sharedWorkspace] launchApplication:path]))
     {
       return;
     }

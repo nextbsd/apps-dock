@@ -21,6 +21,45 @@
 
 @implementation AppController (Launching)
 
+/* Clicking a running application's tile reopens it, as the Dock does on
+ * macOS: activate the application, then ask its delegate
+ * -applicationShouldHandleReopen:hasVisibleWindows: over Distributed
+ * Objects (GSListener forwards the message). YES means the application
+ * handled it (its delegate said NO), so the Dock restores nothing itself;
+ * an application without the method, or whose delegate leaves it to the
+ * Dock, gets the Dock's usual restore. */
+- (BOOL) reopenRunningApplicationAtPath: (NSString *)path
+{
+  NSString *name = [[path lastPathComponent] stringByDeletingPathExtension];
+  BOOL handled = NO;
+
+  if (![name length])
+    {
+      return NO;
+    }
+  NS_DURING
+    {
+      NSConnection *connection = [NSConnection connectionWithRegisteredName:name
+								       host:@""];
+      id app;
+
+      [connection setRequestTimeout:5.0];
+      [connection setReplyTimeout:5.0];
+      app = [connection rootProxy];
+      if (app)
+	{
+	  [app activateIgnoringOtherApps:YES];
+	  handled = ![app applicationShouldHandleReopen:nil hasVisibleWindows:NO];
+	}
+    }
+  NS_HANDLER
+    {
+      handled = NO;
+    }
+  NS_ENDHANDLER
+  return handled;
+}
+
 - (BOOL) launchApplicationAtPath: (NSString *)path
 {
   DockItem *item = [DockItem applicationItemWithPath:path];

@@ -199,6 +199,7 @@ DockViewCalibratedBackgroundColor(NSColor *color)
 - (void) drawDockTileForItem: (DockItem *)item inCell: (NSRect)cell size: (CGFloat)size;
 - (void) drawStateForItem: (DockItem *)item inCell: (NSRect)cell;
 - (void) drawTopTile;
+- (void) drawRunningState: (BOOL)running inCell: (NSRect)cell;
 - (void) drawRecyclerFallbackInCell: (NSRect)cell;
 - (void) drawRecyclerContentsIndicatorInCell: (NSRect)cell;
 - (void) drawRecyclerTile;

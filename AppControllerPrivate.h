@@ -136,6 +136,8 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (BOOL) applicationBundlePathIsCoreService: (NSString *)path;
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path;
 - (NSString *) workspaceApplicationPath;
+- (void) updateTopTileWithProcessPaths: (NSArray *)processPaths;
+- (BOOL) reopenRunningApplicationAtPath: (NSString *)path;
 - (NSImage *) workspaceIcon;
 - (void) rememberLaunchedApplicationPath: (NSString *)path;
 - (BOOL) windowPathMatchesLaunchedApplication: (NSString *)path;
