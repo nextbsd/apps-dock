@@ -93,6 +93,17 @@ into `$(GNUSTEP_LIBRARY)/DockExtras` with it.
 
 Bundled extras:
 
+- **Sound** (`Sound.dockextra`): a speaker showing the default output's
+  volume and mute, from the OSS mixer (`/dev/mixer`, which follows
+  `hw.snd.default_unit`), read and set with the mixer ioctls. A click
+  opens a panel with a volume slider, Mute and the output device; the
+  right-click menu has Mute, volume steps and the outputs (from
+  `/dev/sndstat`). Scrolling over the tile changes the volume. NextBSD has
+  no devd and the mixer posts no notification, so the extra reads it
+  every 1.5 seconds to follow `mixer(8)` and other apps. No sound device:
+  no tile. Choosing another output sets `hw.snd.default_unit`, which
+  needs root for now.
+
 - **Date and clock** (`Clock.dockextra`): the time with the day and
   date, digital or analog, fitted to the cell. A click shows a month
   calendar (the arrows, the scroll wheel or Page Up/Down change the
