@@ -93,6 +93,15 @@ into `$(GNUSTEP_LIBRARY)/DockExtras` with it.
 
 Bundled extras:
 
+- **Battery** (`Battery.dockextra`): the charge as a battery glyph, a
+  bolt on the power adapter, and the percentage (**Show Percentage**,
+  `DockExtraBatteryShowsPercentage`); the tooltip has the time remaining
+  or until full, and the menu the power source and condition. The data is
+  IOPowerSources (`IOPSCopyPowerSourcesInfo`) from powerd; changes come as
+  the notify(3) keys powerd posts, the ones
+  `IOPSNotificationCreateRunLoopSource` listens to, so nothing is polled.
+  No battery (desktops, VMs): no tile.
+
 - **Sound** (`Sound.dockextra`): a speaker showing the default output's
   volume and mute, from the OSS mixer (`/dev/mixer`, which follows
   `hw.snd.default_unit`), read and set with the mixer ioctls. A click
