@@ -402,9 +402,21 @@
       return;
     }
 
-  /* After the last item: right after it in a Dock that fills its edge
-   * (the Recycler is across the gap), else before the Recycler. */
-  if (_dropIndex < [_items count] || _fillsColumn)
+  /* In a Dock that fills its edge the mark goes right after the item
+   * before it, so that dropping at the end of a section marks that
+   * section rather than the far side of the gap after it (or the
+   * Recycler, across the flexible gap). */
+  if (_fillsColumn && _dropIndex > 0)
+    {
+      NSPoint origin = [self cellOriginAtIndex:_dropIndex - 1];
+      cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+      if (_horizontal)
+	cell.origin.x += _cellSize + _dockGap;
+      else
+	cell.origin.y -= _cellSize + _dockGap;
+    }
+  /* After the last item: before the Recycler. */
+  else if (_dropIndex < [_items count] || _fillsColumn)
     {
       NSPoint origin = [self cellOriginAtIndex:_dropIndex];
       cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
@@ -437,6 +449,8 @@
   NSPoint origin;
   NSRect previousCell;
   NSRect nextCell;
+  /* The line keeps its proportions when the tiles shrink to fit. */
+  CGFloat inset = floor(DockSeparatorInset * _cellSize / DockCell);
   CGFloat x;
   CGFloat y;
 
@@ -470,14 +484,14 @@
   if (_horizontal)
     {
       x = floor((NSMaxX(previousCell) + NSMinX(nextCell)) / 2.0);
-      return NSMakeRect(x, NSMinY(nextCell) + DockSeparatorInset,
-                        1.0, NSHeight(nextCell) - 2.0 * DockSeparatorInset);
+      return NSMakeRect(x, NSMinY(nextCell) + inset,
+                        1.0, NSHeight(nextCell) - 2.0 * inset);
     }
   else
     {
       y = floor((NSMinY(previousCell) + NSMaxY(nextCell)) / 2.0);
-      return NSMakeRect(NSMinX(nextCell) + DockSeparatorInset, y,
-                        NSWidth(nextCell) - 2.0 * DockSeparatorInset, 1.0);
+      return NSMakeRect(NSMinX(nextCell) + inset, y,
+                        NSWidth(nextCell) - 2.0 * inset, 1.0);
     }
 }
 
@@ -491,33 +505,35 @@
 
 /*
  * Where separators go, as item indexes (a separator before the item, or
- * after the last one): around everything after the pinned apps, as
- * before, and between the running apps and the minimized windows. The
- * status area's Dock extras always get one above them.
+ * after the last one). In a Dock that fills its edge: before the running
+ * apps that aren't kept and before the minimized windows, each only when
+ * its section has something in it; the extras sit across the flexible
+ * gap and need none. Otherwise: around everything after the pinned
+ * apps, and between the running apps and the minimized windows.
  */
 - (NSArray *) sectionBoundaryIndexes
 {
   NSMutableArray *result = [NSMutableArray array];
   NSUInteger count = [_items count];
-  NSUInteger firstWindow = count;
+  NSUInteger firstWindow;
   NSUInteger i;
 
-  if (_pinnedItemCount >= count)
+  if (_fillsColumn)
     {
-      if ([_extras count] && _fillsColumn)
+      for (i = _pinnedItemCount; i < count; i++)
 	{
-	  [result addObject:[NSNumber numberWithUnsignedInteger:count]];
+	  if ([self sectionStartsAtIndex:i])
+	    {
+	      [result addObject:[NSNumber numberWithUnsignedInteger:i]];
+	    }
 	}
       return result;
     }
-  for (i = _pinnedItemCount; i < count; i++)
+  if (_pinnedItemCount >= count)
     {
-      if ([(DockItem *)[_items objectAtIndex:i] kind] == DockItemMinimizedWindow)
-	{
-	  firstWindow = i;
-	  break;
-	}
+      return result;
     }
+  firstWindow = [self firstMinimizedWindowIndex];
   [result addObject:[NSNumber numberWithUnsignedInteger:_pinnedItemCount]];
   if (firstWindow > _pinnedItemCount && firstWindow < count)
     {

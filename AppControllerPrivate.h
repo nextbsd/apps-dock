@@ -77,6 +77,7 @@
 - (CGFloat) activeDockPad;
 - (CGFloat) activeDockGap;
 - (CGFloat) activeDockWindowWidth;
+- (NSUInteger) dockSectionGapCount;
 - (CGFloat) activeDockCellSize;
 - (void) applyDockCellSizeToView;
 - (void) loadPersistedApplications;
