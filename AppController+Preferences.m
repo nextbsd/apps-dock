@@ -28,25 +28,30 @@
 
 /*
  * Workspace Preferences changed a desktop setting. For the Dock's
- * position (NBDockPosition), move to the new edge at once, as the
- * Dock's own Settings window does. On WindowServer the notification
- * carries the effective position (the user's or the theme's); under
- * X11 the Dock follows the DockPlacement Workspace wrote beside it.
+ * position (NBDockPosition), or the window mode (NBWindowMode), which
+ * has its own, move to the new edge at once, as the Dock's own Settings
+ * window does. On WindowServer the NBDockPosition notification carries
+ * the effective position (the user's or the theme's); under X11 the
+ * Dock follows the DockPlacement Workspace wrote beside it.
  */
 - (void) desktopSettingsDidChange: (NSNotification *)notification
 {
   NSDictionary *info = [notification userInfo];
+  id key = [info objectForKey:@"key"];
   DockPlacement placement;
 
-  if (![[info objectForKey:@"key"] isEqual:DockPositionDefaultsKey])
+  if (![key isEqual:DockPositionDefaultsKey]
+      && ![key isEqual:DockWindowModeDefaultsKey]
+      && ![key isEqual:DockModeSettingsKey])
     {
       return;
     }
   [[NSUserDefaults standardUserDefaults] synchronize];
   if ([WSDockManager isWindowServerSession])
     {
-      if (![DockPreferences placement:&placement
-		      forDockPosition:[info objectForKey:@"value"]])
+      if (![key isEqual:DockPositionDefaultsKey]
+	  || ![DockPreferences placement:&placement
+			 forDockPosition:[info objectForKey:@"value"]])
 	{
 	  placement = [_preferences savedWindowServerDockPlacement];
 	}

@@ -47,16 +47,24 @@ apps-windowserver's README). It's built when pkg-config finds
   the right end of a row. When the column or row is full, tiles shrink.
 - **Placement:** the desktop setting `NBDockPosition` (`right`, `left`,
   `top` or `bottom`) picks the edge, looked up as nextbsd-theme's
-  `NBDesktopSettings.h` does: the user's choice (in `NSGlobalDomain`),
-  then the active theme's `Info.plist`, then the right edge. Change it in
+  `NBDesktopSettings.h` does, for the window mode in effect
+  (`NBWindowMode`: stacking or tiling each keep their own,
+  nextbsd/nextbsd-theme#8): the user's choice for the mode
+  (`NBModeSettings` in `NSGlobalDomain`; in stacking, a plain
+  `NBDockPosition` from before counts too), then the active theme's
+  `NBModeDefaults` for the mode, then its plain `NBDockPosition`, then the
+  right edge. In the NextBSD theme that's the right edge while stacking and
+  the bottom while tiling; switching mode in Workspace Preferences moves the
+  Dock at once. Change it in
   **Workspace Preferences → Desktop → Dock position** (nextbsd/apps-workspace#54),
   including "Use theme default", or in the Dock's own **Settings → Dock →
   Placement** (Left, Right, Top, Bottom), which saves it as the user's
-  choice; either moves the Dock at once. The Dock listens for the
+  choice for the current mode; either moves the Dock at once. The Dock listens for the
   distributed notification `org.nextbsd.DesktopSettingsChanged` (its
   userInfo's `key` and effective `value`), which Workspace posts and the
   Dock's Settings window posts too. `defaults write NSGlobalDomain
-  NBDockPosition top` and a restart of the Dock work as well.
+  NBModeSettings '{ tiling = { NBDockPosition = top; }; }'` and a restart
+  of the Dock work as well.
   `DockPlacement` stays the X11 (Gershwin) setting: there the left and
   right placements (0 to 3) are top or centred, Top Center (4) and Bottom
   Center (5) the rest, and the Dock follows the `DockPlacement` Workspace
