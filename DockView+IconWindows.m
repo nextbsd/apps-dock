@@ -153,11 +153,13 @@ static Display *DockX11Display(NSWindow *window)
 
 - (void) mouseDown: (NSEvent *)event
 {
+  if (_kind == 0 && _item) [_dock keepIndicatorAboveIconOfItem:_item];
   [_dock mouseDown:[self dockEvent:event]];
 }
 
 - (void) rightMouseDown: (NSEvent *)event
 {
+  if (_kind == 0 && _item) [_dock keepIndicatorAboveIconOfItem:_item];
   [_dock rightMouseDown:[self dockEvent:event]];
 }
 
@@ -493,6 +495,19 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
     if (child != window && [child isVisible])
       sibling = [child windowNumber];
   [window orderWindow:NSWindowAbove relativeTo:sibling];
+}
+
+/* WindowServer raises a window that is clicked (RaiseOnClick), so a
+ * click on an icon puts it over its running dot; put the dot back on
+ * top. */
+- (void) keepIndicatorAboveIconOfItem: (DockItem *)item
+{
+  NSWindow *icon = [_iconWindows objectForKey:[NSValue valueWithPointer:item]];
+  NSWindow *indicator = [_iconWindows objectForKey:
+    [NSString stringWithFormat:@"indicator-%p", item]];
+
+  if ([icon isVisible] && [indicator isVisible])
+    [indicator orderWindow:NSWindowAbove relativeTo:[icon windowNumber]];
 }
 
 - (void) syncIconWindows
