@@ -18,6 +18,11 @@
  * userInfo's "key" and its effective "value"); see nextbsd-theme's
  * NBDesktopSettings.h. */
 #define DockPositionDefaultsKey @"NBDockPosition"
+/* The Dock position is kept per window mode: the mode, the user's
+ * choices per mode (NSGlobalDomain) and the theme's (Info.plist). */
+#define DockWindowModeDefaultsKey @"NBWindowMode"
+#define DockModeSettingsKey @"NBModeSettings"
+#define DockModeDefaultsKey @"NBModeDefaults"
 #define DockDesktopSettingsChangedNotification \
   @"org.nextbsd.DesktopSettingsChanged"
 
@@ -43,12 +48,16 @@ enum
 + (NSColor *) calibratedBackgroundColor: (NSColor *)color;
 
 - (DockPlacement) savedDockPlacement;
+/* The window mode in effect, stacking or tiling (NBWindowMode). */
++ (NSString *) windowMode;
 /* On WindowServer: one of the four edge placements, from the desktop
- * setting NBDockPosition (see nextbsd-theme's NBDesktopSettings.h). */
+ * setting NBDockPosition in the current window mode (see nextbsd-theme's
+ * NBDesktopSettings.h). */
 - (DockPlacement) savedWindowServerDockPlacement;
 - (void) saveDockPlacement: (DockPlacement)placement;
-/* The user's NBDockPosition, in NSGlobalDomain, for the placement's
- * edge, as Workspace Preferences writes it; then tells other apps. */
+/* The user's NBDockPosition for the current window mode, in
+ * NSGlobalDomain's NBModeSettings, for the placement's edge, as
+ * Workspace Preferences writes it; then tells other apps. */
 - (void) saveDockPosition: (DockPlacement)placement;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor: (NSColor *)color;

@@ -262,25 +262,78 @@ placementFromDefault(id value, DockPlacement *placement)
 /*
  * On WindowServer the Dock fills a whole screen edge, from the desktop
  * setting NBDockPosition, looked up as nextbsd-theme's
- * NBDesktopSettings.h does (keep them in step): the user's choice
- * (Workspace Preferences writes it to NSGlobalDomain), then the active
- * theme's Info.plist, then the right edge. DockPlacement stays X11's
+ * NBDesktopSettings.h does (keep them in step). It's kept per window
+ * mode (NBWindowMode: stacking, tiling): the user's choice for the mode
+ * (NBModeSettings[mode] in NSGlobalDomain, which Workspace Preferences
+ * writes; in stacking, a plain NBDockPosition from before counts too),
+ * then the active theme's NBModeDefaults[mode], then its plain
+ * NBDockPosition, then the right edge. DockPlacement stays X11's
  * (Gershwin's); WindowServer ignores it and X11's DockOnRight and
  * DockCentered.
  */
+static id
+modeValue(id modes, NSString *mode, NSString *key)
+{
+  id entry;
+
+  if (![modes isKindOfClass:[NSDictionary class]])
+    {
+      return nil;
+    }
+  entry = [modes objectForKey:mode];
+  if (![entry isKindOfClass:[NSDictionary class]])
+    {
+      return nil;
+    }
+  return [entry objectForKey:key];
+}
+
++ (NSString *) windowMode
+{
+  NSArray *modes = [NSArray arrayWithObjects:@"stacking", @"tiling", nil];
+  id mode = [[NSUserDefaults standardUserDefaults]
+	      objectForKey:DockWindowModeDefaultsKey];
+
+  if ([mode isKindOfClass:[NSString class]] && [modes containsObject:mode])
+    {
+      return mode;
+    }
+  mode = [[[GSTheme theme] infoDictionary]
+	   objectForKey:DockWindowModeDefaultsKey];
+  if ([mode isKindOfClass:[NSString class]] && [modes containsObject:mode])
+    {
+      return mode;
+    }
+  return @"stacking";
+}
+
 - (DockPlacement) savedWindowServerDockPlacement
 {
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSDictionary *info = [[GSTheme theme] infoDictionary];
+  NSString *mode = [DockPreferences windowMode];
   DockPlacement placement;
 
   if ([DockPreferences placement:&placement
-		 forDockPosition:[[NSUserDefaults standardUserDefaults]
-				   objectForKey:DockPositionDefaultsKey]])
+		 forDockPosition:modeValue([defaults objectForKey:DockModeSettingsKey],
+					   mode, DockPositionDefaultsKey)])
+    {
+      return placement;
+    }
+  if ([mode isEqual:@"stacking"]
+      && [DockPreferences placement:&placement
+		    forDockPosition:[defaults objectForKey:DockPositionDefaultsKey]])
     {
       return placement;
     }
   if ([DockPreferences placement:&placement
-		 forDockPosition:[[[GSTheme theme] infoDictionary]
-				   objectForKey:DockPositionDefaultsKey]])
+		 forDockPosition:modeValue([info objectForKey:DockModeDefaultsKey],
+					   mode, DockPositionDefaultsKey)])
+    {
+      return placement;
+    }
+  if ([DockPreferences placement:&placement
+		 forDockPosition:[info objectForKey:DockPositionDefaultsKey]])
     {
       return placement;
     }
@@ -301,8 +354,51 @@ placementFromDefault(id value, DockPlacement *placement)
     ? [NSMutableDictionary dictionaryWithDictionary:existing]
     : [NSMutableDictionary dictionary];
   NSString *position = dockPositionForPlacement(placement);
+  NSMutableDictionary *modes = [NSMutableDictionary dictionary];
+  NSMutableDictionary *entry;
+  NSString *mode = [DockPreferences windowMode];
+  id saved = [domain objectForKey:DockModeSettingsKey];
+  id legacy = [domain objectForKey:DockPositionDefaultsKey];
+  DockPlacement legacyPlacement;
+  NSEnumerator *e;
+  id key;
 
-  [domain setObject:position forKey:DockPositionDefaultsKey];
+  /* The choice is the current window mode's, in NBModeSettings. A plain
+   * NBDockPosition from before was the stacking one: it moves there. */
+  if ([saved isKindOfClass:[NSDictionary class]])
+    {
+      e = [saved keyEnumerator];
+      while ((key = [e nextObject]) != nil)
+	{
+	  if ([[saved objectForKey:key] isKindOfClass:[NSDictionary class]])
+	    {
+	      [modes setObject:[[[saved objectForKey:key] mutableCopy] autorelease]
+			forKey:key];
+	    }
+	}
+    }
+  if ([DockPreferences placement:&legacyPlacement forDockPosition:legacy])
+    {
+      entry = [modes objectForKey:@"stacking"];
+      if (entry == nil)
+	{
+	  entry = [NSMutableDictionary dictionary];
+	  [modes setObject:entry forKey:@"stacking"];
+	}
+      if ([entry objectForKey:DockPositionDefaultsKey] == nil)
+	{
+	  [entry setObject:legacy forKey:DockPositionDefaultsKey];
+	}
+    }
+  [domain removeObjectForKey:DockPositionDefaultsKey];
+  entry = [modes objectForKey:mode];
+  if (entry == nil)
+    {
+      entry = [NSMutableDictionary dictionary];
+      [modes setObject:entry forKey:mode];
+    }
+  [entry setObject:position forKey:DockPositionDefaultsKey];
+  [domain setObject:modes forKey:DockModeSettingsKey];
   [defaults setPersistentDomain:domain forName:NSGlobalDomain];
   [defaults synchronize];
 
