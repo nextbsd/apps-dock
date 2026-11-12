@@ -22,7 +22,10 @@
 typedef enum
   {
     DockItemApplication,
-    DockItemX11Window
+    DockItemX11Window,
+    /* A window minimized into the Dock (NextBSD's WindowServer); its
+     * xWindow is the WindowServer window id, its icon a live preview. */
+    DockItemMinimizedWindow
   } DockItemKind;
 
 typedef enum
@@ -58,6 +61,7 @@ typedef enum
 - (DockItemState) state;
 - (void) setState: (DockItemState)state;
 - (NSString *) title;
+- (void) setTitle: (NSString *)title;
 - (NSString *) path;
 - (void) setPath: (NSString *)path;
 - (NSString *) launchArguments;
@@ -96,6 +100,9 @@ typedef enum
                  window: (unsigned long)xWindow
                    icon: (NSImage *)icon
                  hidden: (BOOL)hidden;
++ (id) minimizedWindowItemWithTitle: (NSString *)title
+			     window: (unsigned long)window
+			       icon: (NSImage *)icon;
 @end
 
 @interface DockItem (Icons)

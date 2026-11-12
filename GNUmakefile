@@ -15,6 +15,7 @@ AppController+Recycler.m \
 AppController+Scanning.m \
 AppController+Settings.m \
 AppController+X11Delegate.m \
+AppController+WindowServer.m \
 SettingsController+Panel.m \
 SettingsController+Applications.m \
 SettingsController+Updates.m \
@@ -46,7 +47,8 @@ X11DockManager+DockApps.m \
 X11DockManager+IconManager.m \
 X11DockManager+Layout.m \
 X11DockManager+Activation.m \
-X11DockManager.m
+X11DockManager.m \
+WSDockManager.m
 
 DockWM_APPLICATION_ICON = DockWM.tiff
 
@@ -59,5 +61,13 @@ Resources/GNUstep_circle.png
 
 ADDITIONAL_OBJCFLAGS += $(shell pkg-config --cflags x11 xext 2>/dev/null)
 DockWM_TOOL_LIBS += $(shell pkg-config --libs x11 xext 2>/dev/null)
+
+# NextBSD's WindowServer (WSDockManager), where its client library is
+# installed; elsewhere the Dock is built for X11 only.
+ifeq ($(shell pkg-config --exists WindowServerClient 2>/dev/null && echo yes),yes)
+ADDITIONAL_OBJCFLAGS += -DDOCK_HAVE_WINDOWSERVER \
+	$(shell pkg-config --cflags WindowServerClient)
+DockWM_TOOL_LIBS += $(shell pkg-config --libs WindowServerClient)
+endif
 
 include $(GNUSTEP_MAKEFILES)/application.make

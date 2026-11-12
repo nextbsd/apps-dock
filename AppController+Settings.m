@@ -393,7 +393,7 @@ didChangeSingleClickLaunchesApplications: (BOOL)singleClickLaunches
  didChangeHidesMiniwindows: (BOOL)hidesMiniwindows
 {
   _hidesMiniwindows = hidesMiniwindows;
-  [_x11 setHidesMiniwindows:_hidesMiniwindows];
+  [_windowManager setHidesMiniwindows:_hidesMiniwindows];
   [_preferences saveHidesMiniwindows:_hidesMiniwindows];
 }
 

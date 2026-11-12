@@ -477,6 +477,11 @@
     }
 
   item = [_items objectAtIndex:index];
+  /* A minimized window leaves the Dock when it's restored. */
+  if ([item kind] == DockItemMinimizedWindow)
+    {
+      return NO;
+    }
   if ([item kind] == DockItemApplication || [item kind] == DockItemX11Window)
     {
       if ([item state] != DockItemNotRunning)

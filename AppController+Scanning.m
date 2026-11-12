@@ -24,13 +24,15 @@
 - (void) performInitialApplicationScans
 {
   [self scanRunningApplications];
-  if (_x11)
+  /* X11 is polled for events and rescanned for dockapps; WindowServer
+   * tells the Dock when its window list changes (WSDockManager). */
+  if ([_windowManager isKindOfClass:[X11DockManager class]])
     {
-      [_x11 scanForDockApps];
+      [_windowManager scanForDockApps];
       if (!_x11EventTimer)
 	{
 	  _x11EventTimer = [NSTimer scheduledTimerWithTimeInterval:0.02
-							    target:_x11
+							    target:_windowManager
 							  selector:@selector(processPendingEvents)
 							  userInfo:nil
 							   repeats:YES];
@@ -44,7 +46,7 @@
       if (!_scanTimer)
 	{
 	  _scanTimer = [NSTimer scheduledTimerWithTimeInterval:30.0
-							target:_x11
+							target:_windowManager
 						      selector:@selector(scanForDockApps)
 						      userInfo:nil
 						       repeats:YES];
@@ -88,7 +90,7 @@
               processPaths = [self runningProcessExecutablePaths];
             }
           if ([self applicationItemHasRunningProcess:item paths:processPaths] ||
-              ([item xWindow] && [_x11 windowExists:[item xWindow]]))
+              ([item xWindow] && [_windowManager windowExists:[item xWindow]]))
             {
               continue;
             }
@@ -100,7 +102,7 @@
           changed = YES;
         }
       else if ([item kind] == DockItemX11Window && [item xWindow] &&
-               ![_x11 windowExists:[item xWindow]])
+               ![_windowManager windowExists:[item xWindow]])
         {
           [item setXWindow:0];
           [item setState:DockItemNotRunning];
@@ -146,7 +148,7 @@
       running = [self applicationItemHasRunningProcess:item paths:processPaths];
       if (!running && [item xWindow])
 	{
-	  if ([_x11 windowExists:[item xWindow]])
+	  if ([_windowManager windowExists:[item xWindow]])
 	    {
 	      continue;
 	    }
@@ -213,7 +215,7 @@
       else if ([item kind] == DockItemX11Window &&
 	       ![item isPinned] &&
 	       [item xWindow] &&
-	       ![_x11 windowExists:[item xWindow]])
+	       ![_windowManager windowExists:[item xWindow]])
 	{
 	  [_items removeObjectAtIndex:i - 1];
 	  changed = YES;

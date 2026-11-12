@@ -104,7 +104,10 @@
       [self acknowledgeWiggleForItem:[_items objectAtIndex:index]];
     }
 
-  if (_singleClickLaunchesApplications && index != NSNotFound)
+  /* A minimized window in the Dock comes back with one click. */
+  if (index != NSNotFound &&
+      (_singleClickLaunchesApplications ||
+       [(DockItem *)[_items objectAtIndex:index] kind] == DockItemMinimizedWindow))
     {
       isDoubleClick = YES;
     }

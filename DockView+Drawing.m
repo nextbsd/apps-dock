@@ -453,8 +453,10 @@
       previousCell = [self topTileRect];
     }
 
-  if (index < [_items count])
+  if (index < [_items count] || (_fillsColumn && !_horizontal))
     {
+      /* In the NextBSD column the last section ends right after its
+       * last item, not at the Recycler across the gap. */
       origin = [self cellOriginAtIndex:index];
       nextCell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
     }
@@ -485,6 +487,40 @@
 }
 
 
+/*
+ * Where separators go, as item indexes (a separator before the item, or
+ * after the last one): around everything after the pinned apps, as
+ * before, and between the running apps and the minimized windows.
+ */
+- (NSArray *) sectionBoundaryIndexes
+{
+  NSMutableArray *result = [NSMutableArray array];
+  NSUInteger count = [_items count];
+  NSUInteger firstWindow = count;
+  NSUInteger i;
+
+  if (_pinnedItemCount >= count)
+    {
+      return result;
+    }
+  for (i = _pinnedItemCount; i < count; i++)
+    {
+      if ([(DockItem *)[_items objectAtIndex:i] kind] == DockItemMinimizedWindow)
+	{
+	  firstWindow = i;
+	  break;
+	}
+    }
+  [result addObject:[NSNumber numberWithUnsignedInteger:_pinnedItemCount]];
+  if (firstWindow > _pinnedItemCount && firstWindow < count)
+    {
+      [result addObject:[NSNumber numberWithUnsignedInteger:firstWindow]];
+    }
+  [result addObject:[NSNumber numberWithUnsignedInteger:count]];
+  return result;
+}
+
+
 - (void) drawSeparatorBeforeIndex: (NSUInteger)index
 {
   [[NSColor colorWithCalibratedWhite:1.0 alpha:0.55] set];
@@ -494,13 +530,14 @@
 
 - (void) drawDockSeparators
 {
-  if (_pinnedItemCount >= [_items count])
-    {
-      return;
-    }
+  NSArray *boundaries = [self sectionBoundaryIndexes];
+  NSUInteger i;
 
-  [self drawSeparatorBeforeIndex:_pinnedItemCount];
-  [self drawSeparatorBeforeIndex:[_items count]];
+  for (i = 0; i < [boundaries count]; i++)
+    {
+      [self drawSeparatorBeforeIndex:
+	      [[boundaries objectAtIndex:i] unsignedIntegerValue]];
+    }
 }
 
 

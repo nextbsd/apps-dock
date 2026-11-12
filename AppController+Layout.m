@@ -38,6 +38,14 @@
   CGFloat x;
   CGFloat y;
 
+  /* On WindowServer the Dock is the whole right edge (DockView's
+   * column), whatever the placement setting says for X11. */
+  if ([WSDockManager isWindowServerSession])
+    {
+      placement = DockPlacementRightTop;
+      width = thickness;
+      height = NSHeight(screenFrame);
+    }
   if (height > NSHeight(screenFrame))
     {
       height = NSHeight(screenFrame);

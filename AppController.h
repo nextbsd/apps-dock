@@ -21,6 +21,7 @@
 #import "DockView.h"
 #import "SettingsController.h"
 #import "X11DockManager.h"
+#import "WSDockManager.h"
 
 @class ApplicationIconManager;
 @class DockApplicationStore;
@@ -41,7 +42,8 @@
   ApplicationIconManager *_applicationIconManager;
   NSMutableArray *_items;
   NSMutableSet *_launchedApplicationPaths;
-  X11DockManager *_x11;
+  /* X11DockManager, or WSDockManager on NextBSD's WindowServer. */
+  id _windowManager;
   NSTimer *_x11EventTimer;
   NSTimer *_scanTimer;
   NSTimer *_processScanTimer;

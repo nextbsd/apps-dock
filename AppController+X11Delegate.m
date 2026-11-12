@@ -294,7 +294,7 @@
 	  NSUInteger itemIndex = [self indexForItem:item];
 	  if (itemIndex != NSNotFound)
 	    {
-	      [_x11 dockWindow:xWindow atIndex:itemIndex];
+	      [_windowManager dockWindow:xWindow atIndex:itemIndex];
 	    }
 	}
     }

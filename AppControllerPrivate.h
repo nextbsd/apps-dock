@@ -34,6 +34,14 @@
 @interface AppController (X11Delegate) <X11DockManagerDelegate>
 @end
 
+@interface AppController (WindowServer) <WSDockManagerDelegate>
+- (BOOL) usesWindowServer;
+- (void) sortItemsIntoSections;
+- (NSArray *) dockView: (id)dockView windowsForItem: (DockItem *)item;
+- (void) dockView: (id)dockView activateWindow: (NSNumber *)window
+	  forItem: (DockItem *)item;
+@end
+
 @interface AppController (Restore)
 
 - (BOOL) dockView: (id)dockView canRestoreItem: (DockItem *)item;
@@ -61,6 +69,7 @@
 - (CGFloat) activeDockPad;
 - (CGFloat) activeDockGap;
 - (CGFloat) activeDockWindowWidth;
+- (CGFloat) activeDockCellSize;
 - (void) applyDockCellSizeToView;
 - (void) loadPersistedApplications;
 - (void) savePersistedApplications;
