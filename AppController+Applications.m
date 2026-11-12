@@ -37,8 +37,7 @@
           [_items removeObjectAtIndex:i];
           droppedCoreService = YES;
         }
-      else if (![self applicationPathIsKeptInDock:path] ||
-          [self applicationBundlePathIsWorkspace:path])
+      else if ([self applicationBundlePathIsWorkspace:path])
         {
           [_items removeObjectAtIndex:i];
         }
@@ -257,7 +256,6 @@
   processPath = [self executablePathForProcessIdentifier:processIdentifier];
   bundlePath = [DockItem applicationBundlePathForPath:processPath];
   if (![bundlePath length] ||
-      ![self applicationPathIsKeptInDock:bundlePath] ||
       [self applicationBundlePathIsBuiltIn:bundlePath] ||
       [self dockHasApplicationPath:bundlePath])
     {
@@ -270,6 +268,7 @@
       return item;
     }
 
+  [self forgetLegacyKeepInDockForApplicationPath:bundlePath];
   item = [DockItem applicationItemWithPath:bundlePath];
   [item setPinned:NO];
   [item setState:DockItemRunning];

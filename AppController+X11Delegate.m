@@ -187,8 +187,7 @@
     {
       path = [self executablePathForX11WindowTitle:title];
     }
-  if (![self applicationPathIsKeptInDock:path] ||
-      [self applicationBundlePathIsCoreService:path])
+  if ([self applicationBundlePathIsCoreService:path])
     {
       return;
     }

@@ -698,6 +698,9 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   else if (kind == 4)
     {
       [state addObject:[NSNumber numberWithUnsignedInteger:_dropIndex]];
+      [state addObject:[NSNumber numberWithUnsignedInteger:[self openDropSlotIndex]]];
+      [state addObject:[NSNumber numberWithUnsignedInteger:_pinnedItemCount]];
+      [state addObject:[NSNumber numberWithUnsignedInteger:[_items count]]];
       [state addObject:[NSNumber numberWithBool:_horizontal]];
       [state addObject:[NSNumber numberWithDouble:_dockGap]];
       [state addObject:[NSNumber numberWithDouble:_dockPad]];

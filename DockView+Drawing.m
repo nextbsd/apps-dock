@@ -399,6 +399,7 @@
 - (void) drawDropIndicator
 {
   NSRect cell;
+  NSRect slot;
   CGFloat thickness = 3.0;
 
   if ((!_draggingPaths && _draggedItemIndex == NSNotFound) ||
@@ -408,14 +409,42 @@
       return;
     }
 
-  /* In a Dock that fills its edge the mark goes right after the item
-   * before it, so that dropping at the end of a section marks that
-   * section rather than the far side of the gap after it (or the
-   * Recycler, across the flexible gap). */
-  if (_fillsColumn && _dropIndex > 0)
+  /* An open drop slot in the kept apps: an empty tile outline in it,
+   * and the mark at its start. */
+  slot = [self dropSlotRect];
+  if (!NSIsEmptyRect(slot))
     {
-      NSPoint origin = [self cellOriginAtIndex:_dropIndex - 1];
-      cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+      NSRect outline = NSInsetRect(slot, floor(slot.size.width * 0.12),
+				   floor(slot.size.height * 0.12));
+      CGFloat radius = floor(outline.size.width * 0.18);
+      NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:outline
+							   xRadius:radius
+							   yRadius:radius];
+      CGFloat dashes[2] = { 4.0, 3.0 };
+
+      [[NSColor colorWithCalibratedWhite:1.0 alpha:0.14] set];
+      [path fill];
+      [path setLineWidth:1.5];
+      [path setLineDash:dashes count:2 phase:0.0];
+      [[NSColor colorWithCalibratedWhite:0.95 alpha:0.80] set];
+      [path stroke];
+      cell = slot;
+    }
+  /* In a Dock that fills its edge the mark goes right after the item
+   * before it (or the Workspace tile), so that dropping at the end of a
+   * section marks that section rather than the far side of the gap
+   * after it (or the Recycler, across the flexible gap). */
+  else if (_fillsColumn)
+    {
+      if (_dropIndex > 0)
+	{
+	  NSPoint origin = [self cellOriginAtIndex:_dropIndex - 1];
+	  cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+	}
+      else
+	{
+	  cell = [self topTileRect];
+	}
       if (_horizontal)
 	cell.origin.x += _cellSize + _dockGap;
       else
@@ -465,7 +494,12 @@
       return NSZeroRect;
     }
 
-  if (index > 0)
+  if (index == [self openDropSlotIndex])
+    {
+      /* The kept apps' open drop slot comes before the divider. */
+      previousCell = [self dropSlotRect];
+    }
+  else if (index > 0)
     {
       origin = [self cellOriginAtIndex:index - 1];
       previousCell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);

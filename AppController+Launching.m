@@ -149,21 +149,15 @@
   return identifier;
 }
 
-- (BOOL) applicationPathIsKeptInDock: (NSString *)path
-{
-  NSString *domain = [self defaultsDomainForApplicationPath:path];
-  id value;
-
-  if (![domain length])
-    {
-      return YES;
-    }
-  value = [[[NSUserDefaults standardUserDefaults]
-              persistentDomainForName:domain] objectForKey:@"GSDockKeepInDock"];
-  return value == nil || [value boolValue];
-}
-
-- (void) setApplicationPath: (NSString *)path keptInDock: (BOOL)keep
+/*
+ * Older Docks kept GSDockKeepInDock in each app's own defaults, and
+ * hid a running app whose value was NO: unchecking Keep in Dock made
+ * the app vanish from the Dock for good. The kept apps are the Dock's
+ * DockApplications list now, and every running app shows; drop the old
+ * value when the Dock next sees the app, so an older Dock can't hide it
+ * either.
+ */
+- (void) forgetLegacyKeepInDockForApplicationPath: (NSString *)path
 {
   NSString *domain = [self defaultsDomainForApplicationPath:path];
   NSUserDefaults *defaults;
@@ -175,12 +169,13 @@
       return;
     }
   defaults = [NSUserDefaults standardUserDefaults];
-  [defaults synchronize];
   existingValues = [defaults persistentDomainForName:domain];
-  values = existingValues
-    ? [NSMutableDictionary dictionaryWithDictionary:existingValues]
-    : [NSMutableDictionary dictionary];
-  [values setObject:[NSNumber numberWithBool:keep] forKey:@"GSDockKeepInDock"];
+  if ([existingValues objectForKey:@"GSDockKeepInDock"] == nil)
+    {
+      return;
+    }
+  values = [NSMutableDictionary dictionaryWithDictionary:existingValues];
+  [values removeObjectForKey:@"GSDockKeepInDock"];
   [defaults setPersistentDomain:values forName:domain];
   [defaults synchronize];
 }
