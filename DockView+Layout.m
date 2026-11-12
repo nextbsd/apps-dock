@@ -71,8 +71,32 @@
 
 - (NSRect) recyclerTileRect
 {
-  NSPoint origin = [self cellOriginAtIndex:[_items count]];
+  NSPoint origin;
+
+  /* The NextBSD column keeps the Recycler at the bottom. */
+  if (_fillsColumn && !_horizontal)
+    {
+      return NSMakeRect(_dockPad, NSMinY([self bounds]) + _dockPad,
+			_cellSize, _cellSize);
+    }
+  origin = [self cellOriginAtIndex:[_items count]];
   return NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+}
+
+
+/* Where the Dock extras go: right after the last section (empty until
+ * apps-dock#5 gives it a length), above the flexible gap. */
+- (NSRect) statusAreaRect
+{
+  NSPoint origin = [self cellOriginAtIndex:[_items count]];
+
+  if (!_fillsColumn || _horizontal || _statusAreaLength <= 0.0)
+    {
+      return NSZeroRect;
+    }
+  return NSMakeRect(origin.x, NSMaxY(NSMakeRect(origin.x, origin.y, _cellSize,
+						_cellSize)) - _statusAreaLength,
+		    _cellSize, _statusAreaLength);
 }
 
 

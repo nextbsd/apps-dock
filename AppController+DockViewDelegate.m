@@ -25,7 +25,17 @@
 {
   NSUInteger i;
 
-  [[NSUserDefaults standardUserDefaults] setInteger:_dockPlacement forKey:@"DockPlacement"];
+  /* WindowServer sessions keep the Dock on the right and leave the
+   * placement setting alone for X11. */
+  if ([WSDockManager isWindowServerSession])
+    {
+      _dockPlacement = DockPlacementRightTop;
+    }
+  else
+    {
+      [[NSUserDefaults standardUserDefaults] setInteger:_dockPlacement
+						 forKey:@"DockPlacement"];
+    }
   [self applyDockCellSizeToView];
   [_dockView setHorizontal:[DockPreferences placementIsHorizontal:_dockPlacement]];
   [_window setFrame:[self dockWindowFrameForPlacement:_dockPlacement]
@@ -33,14 +43,14 @@
   [_dockView setFrame:NSMakeRect(0, 0,
                                  NSWidth([_window frame]),
                                  NSHeight([_window frame]))];
-  [_x11 setDockPlacement:_dockPlacement];
+  [_windowManager setDockPlacement:_dockPlacement];
   for (i = 0; i < [_items count]; i++)
     {
       DockItem *item = [_items objectAtIndex:i];
 
       if ([item xWindow])
 	{
-	  [_x11 dockWindow:[item xWindow] atIndex:i];
+	  [_windowManager dockWindow:[item xWindow] atIndex:i];
 	}
     }
   [self updateDockBackground];
@@ -113,6 +123,7 @@
 
 - (void) refreshDock
 {
+  [self sortItemsIntoSections];
   [_dockView setItems:_items];
   [_dockView setPinnedItemCount:[self pinnedApplicationCount]];
   [self applyDockPlacement];
@@ -273,7 +284,7 @@
 
       if (![self applicationPathIsKeptInDock:[candidate path]])
         {
-          [_x11 hideDockedWindow:[candidate xWindow]];
+          [_windowManager hideDockedWindow:[candidate xWindow]];
           [_items removeObjectAtIndex:i];
         }
     }
@@ -328,7 +339,7 @@
       return [item state] != DockItemNotRunning ||
         [[self runningProcessIdentifiersForApplicationItem:item] count] > 0;
     }
-  return [item xWindow] && [_x11 windowExists:[item xWindow]];
+  return [item xWindow] && [_windowManager windowExists:[item xWindow]];
 }
 
 
@@ -340,7 +351,7 @@
     {
       processIds = [self runningProcessIdentifiersForApplicationItem:item];
     }
-  return [_x11 minimizedWindowsForProcessIdentifiers:processIds window:[item xWindow]];
+  return [_windowManager minimizedWindowsForProcessIdentifiers:processIds window:[item xWindow]];
 }
 
 
@@ -364,16 +375,16 @@
            * the running application and asks it to activate/unhide itself. */
           if ([bundle length])
             activated = [[NSWorkspace sharedWorkspace] launchApplication:bundle];
-          if ([_x11 activateApplicationWithProcessIdentifiers:processIds])
+          if ([_windowManager activateApplicationWithProcessIdentifiers:processIds])
             activated = YES;
           if (!activated && [self dockView:dockView canRestoreItem:item])
             [self launchApplicationItem:item useIconManager:YES];
         }
       else if ([item xWindow])
         {
-          [_x11 activateWindow:[item xWindow]];
+          [_windowManager activateWindow:[item xWindow]];
         }
-      [_x11 drainTransientIconEvents];
+      [_windowManager drainTransientIconEvents];
       [self refreshDock];
       return;
     }
@@ -384,10 +395,10 @@
       NSNumber *window = [[current objectAtIndex:i] objectForKey:@"window"];
       if ([windows containsObject:window])
         {
-          [_x11 restoreWindow:[window unsignedLongValue]];
+          [_windowManager restoreWindow:[window unsignedLongValue]];
         }
     }
-  [_x11 drainTransientIconEvents];
+  [_windowManager drainTransientIconEvents];
   [self refreshDock];
 }
 
@@ -403,7 +414,7 @@
     }
   else if ([item xWindow])
     {
-      [_x11 closeWindow:[item xWindow]];
+      [_windowManager closeWindow:[item xWindow]];
       [item setState:DockItemNotRunning];
     }
   if (![item isPinned])
@@ -461,6 +472,15 @@
       NSMutableArray *windows = [NSMutableArray array];
       NSUInteger i;
 
+      /* On WindowServer, activating an app restores its minimized
+       * windows only when it has nothing else on screen; otherwise it
+       * just comes forward with the windows it shows. */
+      if ([self usesWindowServer] && [item kind] == DockItemApplication &&
+	  [_windowManager processIdentifiersHaveVisibleWindows:
+	     [self runningProcessIdentifiersForApplicationItem:item]])
+	{
+	  minimized = nil;
+	}
       for (i = 0; i < [minimized count]; i++)
         [windows addObject:[[minimized objectAtIndex:i] objectForKey:@"window"]];
       /* Match Restore (or Restore All) including its application fallback. */
@@ -478,7 +498,7 @@
           [self startLaunchWiggleForItem:item];
           [self refreshDock];
         }
-      [_x11 drainTransientIconEvents];
+      [_windowManager drainTransientIconEvents];
     }
 }
 
@@ -521,7 +541,7 @@
     {
       [[NSWorkspace sharedWorkspace] openFile:path];
     }
-  [_x11 drainTransientIconEvents];
+  [_windowManager drainTransientIconEvents];
 }
 
 @end

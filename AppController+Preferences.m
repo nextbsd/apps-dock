@@ -106,12 +106,42 @@
   return [DockPreferences windowWidthForCellSizeMode:_dockCellSizeMode] * _dockScale;
 }
 
+/*
+ * The cell size: the chosen one, or in the NextBSD column, smaller when
+ * the column is full, so that tiles shrink before anything is hidden.
+ */
+- (CGFloat) activeDockCellSize
+{
+  CGFloat cell = [DockPreferences dockCellSize] * _dockScale;
+  CGFloat gap = [self activeDockGap];
+  CGFloat available;
+  NSUInteger count;
+
+  if (![WSDockManager isWindowServerSession])
+    {
+      return cell;
+    }
+  /* The top tile, every item and the Recycler; the status area and the
+   * flexible gap can be empty. */
+  count = [_items count] + 2;
+  available = NSHeight([[NSScreen mainScreen] frame]) - 2.0 * [self activeDockPad];
+  if (count * cell + (count - 1) * gap > available)
+    {
+      cell = floor((available - (count - 1) * gap) / count);
+      if (cell < 24.0)
+	{
+	  cell = 24.0;
+	}
+    }
+  return cell;
+}
+
 - (void) applyDockCellSizeToView
 {
   if (_dockView)
     {
       [_dockView setAllowsGaps:[_preferences savedAllowsGaps]];
-      [_dockView setIconCellSize:[DockPreferences dockCellSize] * _dockScale
+      [_dockView setIconCellSize:[self activeDockCellSize]
 			      gap:[self activeDockGap]
 			  padding:[self activeDockPad]];
     }

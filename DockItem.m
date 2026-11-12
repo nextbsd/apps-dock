@@ -231,6 +231,18 @@
   return _icon == image;
 }
 
+- (void) setTitle: (NSString *)title
+{
+  if (![_title isEqual:title])
+    {
+      ASSIGNCOPY(_title, title);
+      if ([[_dockTile contentView] respondsToSelector:@selector(setTitle:)])
+	{
+	  [(DockTileIconView *)[_dockTile contentView] setTitle:title];
+	}
+    }
+}
+
 - (void) setIcon: (NSImage *)icon
 {
   if (![self iconMatchesImage:icon])

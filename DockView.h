@@ -55,6 +55,12 @@ typedef enum
 - (void) dockView: (id)dockView restoreWindows: (NSArray *)windows
           forItem: (DockItem *)item;
 - (void) dockView: (id)dockView didQuitItem: (DockItem *)item;
+/* The item's windows for its menu, front to back: dictionaries with
+ * window (NSNumber), title, minimized and key (NSNumber BOOLs). Empty
+ * where the Dock can't see windows (X11). */
+- (NSArray *) dockView: (id)dockView windowsForItem: (DockItem *)item;
+- (void) dockView: (id)dockView activateWindow: (NSNumber *)window
+	  forItem: (DockItem *)item;
 - (void) dockViewDidEmptyRecycler: (id)dockView;
 @end
 
@@ -103,6 +109,8 @@ typedef enum
   NSUInteger _lastMouseDownIndex;
   NSTimeInterval _lastMouseDownTime;
   BOOL _singleClickLaunchesApplications;
+  BOOL _fillsColumn;
+  CGFloat _statusAreaLength;
 }
 
 - (void) setDelegate: (id)delegate;
@@ -133,6 +141,19 @@ typedef enum
 - (BOOL) usesCellBackgroundTile;
 - (void) setHorizontal: (BOOL)horizontal;
 - (BOOL) isHorizontal;
+/*
+ * The NextBSD column (WindowServer sessions): the view fills the whole
+ * screen edge, top to bottom: the top tile, the items (pinned apps,
+ * running apps, minimized windows, each section set off by a
+ * separator), the status area for Dock extras, a flexible gap that
+ * takes the rest and accepts drops, and the Recycler fixed at the
+ * bottom. Otherwise the Recycler follows the last item.
+ */
+- (void) setFillsColumn: (BOOL)fills;
+- (BOOL) fillsColumn;
+/* The status area's length along the column (0: empty for now; the
+ * Dock extras of apps-dock#5 will fill it). */
+- (void) setStatusAreaLength: (CGFloat)length;
 
 @end
 

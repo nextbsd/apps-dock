@@ -13,11 +13,36 @@ It supports two inputs:
 ## NextBSD WindowServer
 
 DockWM also runs on NextBSD's WindowServer (the `nextbsd` GNUstep backend),
-where there is no X display. The dock, pinned apps, launching, running-app
-dots and activating a running app with a double-click all work; the X11 dock
-host, dockapps and the X11 window features (window lists, restoring
-miniwindows, icon-manager hand-off) are skipped. Running apps are found with
-`kern.proc` where `/proc` isn't mounted.
+where there is no X display. Running apps are found with `kern.proc` where
+`/proc` isn't mounted. The X11 dock host and dockapps are X11-only.
+
+What X11DockManager does under X11, `WSDockManager` does here, through
+WindowServer's Dock connection (`WS_CONNECT_DOCK`, see "The Dock" in
+apps-windowserver's README). It's built when pkg-config finds
+`WindowServerClient`; elsewhere DockWM is built for X11 alone.
+
+- **Window lists:** an app's menu starts with its windows, front to back,
+  the key window checked and minimized ones marked with a diamond; choosing
+  one brings it forward, or restores it. The Restore submenu lists the
+  minimized windows, as under X11. WindowServer tells the Dock when the
+  list changes, so nothing is polled, and an app that puts up its first
+  window gets its Dock item right away.
+- **Activating an app** brings its windows forward; if all of them are
+  minimized, it restores them.
+- **Minimized windows in the Dock:** with WindowServer's `MinimizeIntoDock`
+  default on, minimized windows become Dock items after the running apps,
+  each a live preview of the window with its app's icon in the corner, and
+  one click restores it. WindowServer then draws no tiles of its own. The
+  Dock's Hide Miniwindows setting is for X11 only.
+- **GSIconManager** is registered again: app badges (`NSDockTile`) and
+  attention requests (`-requestUserAttention:`) reach the Dock. Asked where
+  to put an app icon window or miniwindow, the Dock answers with the
+  window's own frame.
+- **Layout:** the Dock is always the right edge, top to bottom: the
+  Workspace tile, pinned apps, running apps, minimized windows (each section
+  set off by a separator), the status area for Dock extras, a flexible gap
+  that takes drops, and the Recycler fixed at the bottom. When the column is
+  full, tiles shrink. The placement setting is kept for X11.
 
 ## Build
 

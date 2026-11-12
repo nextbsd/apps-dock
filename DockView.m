@@ -204,6 +204,26 @@
   [self setNeedsDisplay:YES];
 }
 
+- (void) setFillsColumn: (BOOL)fills
+{
+  if (_fillsColumn != fills)
+    {
+      _fillsColumn = fills;
+      [self setNeedsDisplay:YES];
+    }
+}
+
+- (BOOL) fillsColumn
+{
+  return _fillsColumn;
+}
+
+- (void) setStatusAreaLength: (CGFloat)length
+{
+  _statusAreaLength = length;
+  [self setNeedsDisplay:YES];
+}
+
 - (void) setPinnedItemCount: (NSUInteger)count
 {
   if (count > [_items count])

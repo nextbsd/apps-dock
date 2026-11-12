@@ -311,7 +311,7 @@
 
       [self rememberLaunchedApplicationPath:path];
       [self launchApplicationItem:item useIconManager:YES];
-      [_x11 drainTransientIconEvents];
+      [_windowManager drainTransientIconEvents];
     }
 }
 

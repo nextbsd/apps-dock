@@ -134,4 +134,21 @@
 }
 
 
++ (id) minimizedWindowItemWithTitle: (NSString *)title
+			     window: (unsigned long)window
+			       icon: (NSImage *)icon
+{
+  DockItem *item = [self x11ItemWithTitle:title
+				   window:window
+				     icon:icon
+				   hidden:YES];
+
+  item->_kind = DockItemMinimizedWindow;
+  item->_wigglesOnLaunch = NO;
+  item->_wigglesOnActivation = NO;
+  item->_wigglesOnAttentionRequest = NO;
+  return item;
+}
+
+
 @end

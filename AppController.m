@@ -36,6 +36,10 @@
 			      initWithScanner:_applicationScanner];
   _launchedApplicationPaths = [NSMutableSet new];
   _dockPlacement = [self savedDockPlacement];
+  if ([WSDockManager isWindowServerSession])
+    {
+      _dockPlacement = DockPlacementRightTop;
+    }
   _dockCellSizeMode = [self savedDockCellSizeMode];
   _runningIndicatorMode = [self savedRunningIndicatorMode];
   _backgroundColor = RETAIN([self savedBackgroundColor]);
@@ -71,6 +75,7 @@
                                                          NSWidth(frame),
                                                          NSHeight(frame))];
   [_dockView setDelegate:self];
+  [_dockView setFillsColumn:[WSDockManager isWindowServerSession]];
   [_dockView setHorizontal:[DockPreferences placementIsHorizontal:_dockPlacement]];
   [self applyDockCellSizeToView];
   [_dockView setBackgroundColor:_backgroundColor];
@@ -92,14 +97,30 @@
   [_window orderFrontRegardless];
   [_window display];
 
-  _x11 = [[X11DockManager alloc] initWithDockView:_dockView];
-  [_x11 setDelegate:self];
-  [_x11 setHidesMiniwindows:_hidesMiniwindows];
-  if ([_x11 start])
+  if ([WSDockManager isWindowServerSession])
     {
-      /* GNUstep window numbers are backend tags, not native X11 IDs. */
-      [_x11 makeWindowSticky:(unsigned long)[_window windowRef]];
-      [_x11 setDockPlacement:_dockPlacement];
+      /* NextBSD's WindowServer: window lists, minimized windows and
+       * GSIconManager come from WindowServer's Dock connection. */
+      WSDockManager *ws = [[WSDockManager alloc] initWithDockView:_dockView];
+
+      _windowManager = ws;
+      [ws setDelegate:self];
+      [ws setHidesMiniwindows:_hidesMiniwindows];
+      [ws start];
+    }
+  else
+    {
+      X11DockManager *x11 = [[X11DockManager alloc] initWithDockView:_dockView];
+
+      _windowManager = x11;
+      [x11 setDelegate:self];
+      [x11 setHidesMiniwindows:_hidesMiniwindows];
+      if ([x11 start])
+	{
+	  /* GNUstep window numbers are backend tags, not native X11 IDs. */
+	  [x11 makeWindowSticky:(unsigned long)[_window windowRef]];
+	  [x11 setDockPlacement:_dockPlacement];
+	}
     }
 
   [self performSelector:@selector(performInitialApplicationScans)
@@ -117,7 +138,7 @@
   DESTROY(_recyclerController);
   DESTROY(_preferences);
   DESTROY(_dockMenu);
-  DESTROY(_x11);
+  DESTROY(_windowManager);
   DESTROY(_dockView);
   DESTROY(_window);
   DESTROY(_applicationStore);

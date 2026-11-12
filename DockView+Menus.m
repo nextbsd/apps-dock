@@ -36,13 +36,89 @@
 }
 
 
+/* A minimized window in the Dock: its title, and Restore. */
+- (NSMenu *) menuForMinimizedWindowItem: (DockItem *)item
+{
+  NSMenu *menu = AUTORELEASE([[NSMenu alloc] initWithTitle:@"Window"]);
+  NSMenuItem *menuItem;
+
+  [menu setAutoenablesItems:NO];
+  menuItem = [self menuItemWithTitle:[item title] action:NULL item:item];
+  [menuItem setEnabled:NO];
+  [menu addItem:menuItem];
+  [menu addItem:[NSMenuItem separatorItem]];
+  menuItem = [self menuItemWithTitle:@"Restore" action:@selector(restoreItem:)
+				item:item];
+  [menuItem setRepresentedObject:
+	      [NSDictionary dictionaryWithObjectsAndKeys:
+			      item, @"item",
+			      [NSArray arrayWithObject:
+				  [NSNumber numberWithUnsignedLong:[item xWindow]]],
+			      @"windows", nil]];
+  [menu addItem:menuItem];
+  return menu;
+}
+
+
+/*
+ * The app's windows, front to back, at the top of its menu, when the
+ * delegate can see them (NextBSD's WindowServer): choosing one brings it
+ * forward, or restores it if it's minimized. The key window is checked;
+ * minimized ones are marked with a diamond, as on macOS.
+ */
+- (void) addWindowListForItem: (DockItem *)item toMenu: (NSMenu *)menu
+{
+  NSArray *windows = nil;
+  NSUInteger i;
+
+  if ([_delegate respondsToSelector:@selector(dockView:windowsForItem:)])
+    {
+      windows = [_delegate dockView:self windowsForItem:item];
+    }
+  if (![windows count])
+    {
+      return;
+    }
+  for (i = 0; i < [windows count]; i++)
+    {
+      NSDictionary *window = [windows objectAtIndex:i];
+      NSString *title = [window objectForKey:@"title"];
+      NSMenuItem *menuItem;
+
+      if ([[window objectForKey:@"minimized"] boolValue])
+	{
+	  title = [NSString stringWithFormat:@"%C %@", (unichar)0x25C6, title];
+	}
+      menuItem = [self menuItemWithTitle:title
+				  action:@selector(activateItemWindow:)
+				    item:item];
+      [menuItem setRepresentedObject:
+		  [NSDictionary dictionaryWithObjectsAndKeys:
+				  item, @"item",
+				  [window objectForKey:@"window"], @"window",
+				  nil]];
+      [menuItem setState:[[window objectForKey:@"key"] boolValue]
+		? NSOnState : NSOffState];
+      [menu addItem:menuItem];
+    }
+  [menu addItem:[NSMenuItem separatorItem]];
+}
+
+
 - (NSMenu *) menuForDockItem: (DockItem *)item
 {
-  NSMenu *menu = AUTORELEASE([[NSMenu alloc] initWithTitle:@"Application"]);
+  NSMenu *menu = AUTORELEASE([[NSMenu alloc] initWithTitle:
+				 [[item title] length] ? [item title] : @"Application"]);
   NSMenuItem *menuItem;
   BOOL hasPath = [[item path] length] > 0;
   BOOL openAtLogin = NO;
   BOOL canShowSettings = NO;
+
+  if ([item kind] == DockItemMinimizedWindow)
+    {
+      return [self menuForMinimizedWindowItem:item];
+    }
+  [self addWindowListForItem:item toMenu:menu];
 
   if ([_delegate respondsToSelector:
 		 @selector(dockView:itemIsOpenAtLogin:)])
@@ -215,6 +291,18 @@
     {
       [_delegate dockView:self restoreWindows:[selection objectForKey:@"windows"]
                  forItem:[selection objectForKey:@"item"]];
+    }
+}
+
+
+- (void) activateItemWindow: (id)sender
+{
+  NSDictionary *selection = [sender representedObject];
+
+  if ([_delegate respondsToSelector:@selector(dockView:activateWindow:forItem:)])
+    {
+      [_delegate dockView:self activateWindow:[selection objectForKey:@"window"]
+		  forItem:[selection objectForKey:@"item"]];
     }
 }
 
