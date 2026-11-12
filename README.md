@@ -276,15 +276,30 @@ icon-manager connections.
 Run `sh Tests/run-icon-manager-preferences.sh` to check defaults, persistence,
 and per-application overrides using an isolated defaults database.
 
-Each application's menu includes **Keep In Dock**, enabled by default. Turning
-it off immediately removes the app from the dock, even while it is running,
-and prevents process scans and icon updates from adding it again. The choice
-is saved as `GSDockKeepInDock` in the application's defaults domain. Drag the
-application back onto the dock to enable it again. This is separate from
-**Open At Login** and does not quit the application.
+The Workspace tile comes first, then the kept applications, then the
+running applications that aren't kept. A kept application's tile stays
+whether or not the application runs (without a running dot when it
+doesn't, and a click launches it); an application that isn't kept shows
+only while it runs. Every running application has a tile.
 
-Run `sh Tests/run-keep-in-dock.sh` to check the menu, saved visibility, X11
-rediscovery, and restoring an app by dropping it back into the dock.
+Every application tile's menu (not the Workspace tile's) has **Keep in Dock**
+and **Remove from Dock**, never checked. Keep in Dock moves the tile to the
+kept applications. Remove from Dock moves a running application's tile to
+the running applications, where it stays until the application quits, and
+removes the tile of one that isn't running. Choosing the one that already
+applies does nothing. Dragging an application from Workspace (or a
+running application's tile) into the kept applications keeps it there:
+while the drag is over the kept applications they open an empty slot where it
+will go, right after the Workspace tile when nothing is kept yet. Dragging a
+kept tile to the Recycler or out of the Dock removes it the same way. The
+kept applications are saved as `DockApplications` in DockWM's defaults. Older
+Docks saved a `GSDockKeepInDock` value in each application's defaults domain
+and hid running applications with it; the Dock removes that value when it
+next sees the application. This is separate from **Open At Login** and does
+not quit the application.
+
+Run `sh Tests/run-keep-in-dock.sh` to check the menu, the running and kept
+sections, and keeping an app again by dropping it into the dock.
 
 Each running application's context menu includes **Restore**. It activates the
 application even when no minimized-window list is available. GNUstep apps are

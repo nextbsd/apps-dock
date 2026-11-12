@@ -69,36 +69,57 @@ int main(void)
   [defaults synchronize];
   method = class_getClassMethod([NSUserDefaults class], @selector(standardUserDefaults));
   original = method_setImplementation(method, (IMP)isolatedDefaults);
-  [defaults setPersistentDomain:[NSDictionary dictionaryWithObject:@"preserved"
-                                forKey:@"Unrelated"] forName:domain];
-  NSCAssert([controller applicationPathIsKeptInDock:path], @"Default is enabled");
-  NSCAssert([controller applicationPathIsKeptInDock:nil], @"Unknown paths stay visible");
+  /* An older Dock's opt-out, which hid the app even while it ran. */
+  [defaults setPersistentDomain:[NSDictionary dictionaryWithObjectsAndKeys:
+                                  @"preserved", @"Unrelated",
+                                  [NSNumber numberWithBool:NO], @"GSDockKeepInDock",
+                                  nil] forName:domain];
+  [defaults synchronize];
   item = [DockItem applicationItemWithPath:path];
+  [item setPinned:NO];
+  [item setState:DockItemRunning];
   [[controller items] addObject:item];
   view = [[DockView alloc] initWithFrame:NSMakeRect(0, 0, 64, 64)];
   [view setDelegate:controller];
-  toggle = [[view menuForDockItem:item] itemWithTitle:@"Keep In Dock"];
-  NSCAssert(toggle != nil && [toggle state] == NSOnState, @"Menu is checked by default");
+  toggle = [[view menuForDockItem:item] itemWithTitle:@"Remove from Dock"];
+  NSCAssert(toggle != nil && [toggle state] == NSOffState,
+            @"Every app's menu has Remove from Dock, unchecked");
   [view performSelector:[toggle action] withObject:toggle];
-  NSCAssert([[controller items] count] == 0, @"Toggling removes the item immediately");
-  DESTROY(testDefaults);
-  testDefaults = [[NSUserDefaults alloc]
-                   initWithContentsOfFile:[path stringByAppendingString:@"-defaults"]];
-  defaults = testDefaults;
-  [defaults synchronize];
-  NSCAssert(![controller applicationPathIsKeptInDock:path], @"Opt-out survives reload");
+  NSCAssert([[controller items] count] == 1 && ![item isPinned],
+            @"Removing a running app that isn't kept does nothing");
+  toggle = [[view menuForDockItem:item] itemWithTitle:@"Keep in Dock"];
+  NSCAssert(toggle != nil && [toggle state] == NSOffState,
+            @"Every app's menu has Keep in Dock, unchecked");
+  [view performSelector:[toggle action] withObject:toggle];
+  NSCAssert([[controller items] count] == 1 && [item isPinned],
+            @"Keep in Dock keeps the running app");
+  NSCAssert([[defaults persistentDomainForName:domain]
+              objectForKey:@"GSDockKeepInDock"] == nil,
+            @"Keeping it drops the old opt-out");
   NSCAssert([[[defaults persistentDomainForName:domain] objectForKey:@"Unrelated"]
               isEqual:@"preserved"], @"Other application defaults are preserved");
-  NSCAssert([[[view menuForDockItem:item] itemWithTitle:@"Keep In Dock"] state]
-              == NSOffState, @"Menu reflects opt-out");
-  [controller x11DockManagerDidDiscoverWindowWithTitle:name window:123
-               hidden:NO icon:nil path:path dockApp:NO];
-  NSCAssert([[controller items] count] == 0, @"X11 discovery respects opt-out");
+  toggle = [[view menuForDockItem:item] itemWithTitle:@"Keep in Dock"];
+  NSCAssert([toggle state] == NSOffState, @"Keep in Dock is never checked");
+  [view performSelector:[toggle action] withObject:toggle];
+  NSCAssert([[controller items] count] == 1 && [item isPinned],
+            @"Keeping a kept app does nothing");
+  toggle = [[view menuForDockItem:item] itemWithTitle:@"Remove from Dock"];
+  [view performSelector:[toggle action] withObject:toggle];
+  NSCAssert([[controller items] count] == 1 && ![item isPinned],
+            @"Removing a running app leaves it with the running apps");
+  [item setState:DockItemNotRunning];
+  toggle = [[view menuForDockItem:item] itemWithTitle:@"Keep in Dock"];
+  [view performSelector:[toggle action] withObject:toggle];
+  toggle = [[view menuForDockItem:item] itemWithTitle:@"Remove from Dock"];
+  [view performSelector:[toggle action] withObject:toggle];
+  NSCAssert([[controller items] count] == 0,
+            @"Removing an app that isn't running removes its tile");
   [[NSFileManager defaultManager] createFileAtPath:path contents:[NSData data]
                                    attributes:nil];
   [(id<DockViewDelegate>)controller dockViewDidReceivePaths:[NSArray arrayWithObject:path] atIndex:0];
-  NSCAssert([controller applicationPathIsKeptInDock:path] &&
-            [[controller items] count] == 1, @"Dropping the app restores visibility");
+  NSCAssert([[controller items] count] == 1 &&
+            [[[controller items] objectAtIndex:0] isPinned],
+            @"Dropping the app keeps it again");
   [defaults removePersistentDomainForName:domain];
   [defaults synchronize];
   [[NSFileManager defaultManager] removeItemAtPath:path error:NULL];
@@ -108,7 +129,7 @@ int main(void)
   RELEASE(testDefaults);
   [[NSFileManager defaultManager]
     removeItemAtPath:[path stringByAppendingString:@"-defaults"] error:NULL];
-  NSLog(@"Keep In Dock tests passed");
+  NSLog(@"Keep in Dock tests passed");
   RELEASE(pool);
   return 0;
 }

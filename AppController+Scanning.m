@@ -197,8 +197,9 @@
       NSString *bundlePath = [DockItem applicationBundlePathForPath:processPath];
       DockItem *item;
 
+      /* Every running app shows, kept or not: Keep in Dock only
+       * decides whether its tile stays after it quits. */
       if (![bundlePath length] ||
-          ![self applicationPathIsKeptInDock:bundlePath] ||
 	  [self applicationBundlePathIsBuiltIn:bundlePath] ||
 	  [self dockHasApplicationPath:bundlePath] ||
 	  [self transientApplicationItemMatchingBundlePath:bundlePath])
@@ -206,6 +207,7 @@
 	  continue;
 	}
 
+      [self forgetLegacyKeepInDockForApplicationPath:bundlePath];
       item = [DockItem applicationItemWithPath:bundlePath];
       [item setPinned:NO];
       [item setState:DockItemRunning];

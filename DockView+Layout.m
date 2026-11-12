@@ -136,7 +136,42 @@
 }
 
 
-- (NSPoint) cellOriginAtIndex: (NSUInteger)index
+/*
+ * The kept apps' drop slot: while an app or a file is dragged into the
+ * kept apps (from Workspace, or a running app's tile from the running
+ * apps), the tiles from the drop point on move along by one cell, so
+ * that the kept apps open an empty slot where it will go, before the
+ * divider after them. It opens right after the Workspace tile when no
+ * app is kept yet. Only in a Dock that fills its screen edge;
+ * NSNotFound when no slot is open.
+ */
+- (NSUInteger) openDropSlotIndex
+{
+  if (!_fillsColumn || _dropIndex == NSNotFound ||
+      _dropIndex > _pinnedItemCount || _dropIndex > [_items count])
+    {
+      return NSNotFound;
+    }
+  if (_draggingPaths)
+    {
+      return _dropIndex;
+    }
+  if (_draggedItemIndex != NSNotFound &&
+      _draggedItemIndex >= _pinnedItemCount &&
+      _draggedItemIndex < [_items count] &&
+      [(DockItem *)[_items objectAtIndex:_draggedItemIndex] kind]
+	== DockItemApplication)
+    {
+      return _dropIndex;
+    }
+  return NSNotFound;
+}
+
+
+/* Where the item at index sits with a drop slot open before the item
+ * at slot (NSNotFound for none): the tiles at rest, for hit testing,
+ * pass NSNotFound. */
+- (NSPoint) cellOriginAtIndex: (NSUInteger)index openSlot: (NSUInteger)slotIndex
 {
   NSRect topTile = [self topTileRect];
   NSUInteger slot = index;
@@ -144,6 +179,10 @@
   if (_allowsGaps)
     for (NSUInteger i = 0; i < [_items count] && i <= index; i++)
       if ([[_items objectAtIndex:i] isPinned] && [[_items objectAtIndex:i] gapBefore]) slot++;
+  if (slotIndex != NSNotFound && index >= slotIndex)
+    {
+      slot++;
+    }
 
   if (_horizontal)
     {
@@ -157,6 +196,40 @@
 			 NSMinY(topTile) - _dockGap - _cellSize - sections
 			 - slot * (_cellSize + _dockGap));
     }
+}
+
+
+- (NSPoint) cellOriginAtIndex: (NSUInteger)index
+{
+  return [self cellOriginAtIndex:index openSlot:[self openDropSlotIndex]];
+}
+
+
+/* The open drop slot's cell, in the kept apps: one cell along from the
+ * item before it (or the Workspace tile); NSZeroRect when none is open. */
+- (NSRect) dropSlotRect
+{
+  NSUInteger slot = [self openDropSlotIndex];
+  NSRect cell;
+
+  if (slot == NSNotFound)
+    {
+      return NSZeroRect;
+    }
+  if (slot > 0)
+    {
+      NSPoint origin = [self cellOriginAtIndex:slot - 1 openSlot:NSNotFound];
+      cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
+    }
+  else
+    {
+      cell = [self topTileRect];
+    }
+  if (_horizontal)
+    cell.origin.x += _cellSize + _dockGap;
+  else
+    cell.origin.y -= _cellSize + _dockGap;
+  return cell;
 }
 
 
@@ -294,9 +367,11 @@
       return 0;
     }
 
+  /* Against the tiles at rest: an open drop slot moves them, and
+   * mustn't move the drop point with them. */
   for (i = 0; i < [_items count]; i++)
     {
-      NSPoint origin = [self cellOriginAtIndex:i];
+      NSPoint origin = [self cellOriginAtIndex:i openSlot:NSNotFound];
       NSRect cell = NSMakeRect(origin.x, origin.y, _cellSize, _cellSize);
 
       if (_horizontal)

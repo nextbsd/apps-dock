@@ -143,6 +143,9 @@ DockViewCalibratedBackgroundColor(NSColor *color)
 - (NSSize) cellSize;
 - (NSRect) topTileRect;
 - (NSPoint) cellOriginAtIndex: (NSUInteger)index;
+- (NSPoint) cellOriginAtIndex: (NSUInteger)index openSlot: (NSUInteger)slotIndex;
+- (NSUInteger) openDropSlotIndex;
+- (NSRect) dropSlotRect;
 - (NSRect) recyclerTileRect;
 - (NSUInteger) indexAtPoint: (NSPoint)p;
 - (BOOL) recyclerContainsPoint: (NSPoint)p;
@@ -166,7 +169,9 @@ DockViewCalibratedBackgroundColor(NSColor *color)
                               item: (DockItem *)item;
 - (NSMenu *) menuForDockItem: (DockItem *)item;
 - (NSMenu *) menuForRecycler;
-- (void) toggleKeepInDock: (id)sender;
+- (BOOL) itemIsKeptInDock: (DockItem *)item;
+- (void) keepItemInDock: (id)sender;
+- (void) removeItemFromDock: (id)sender;
 - (void) toggleOpenAtLogin: (id)sender;
 - (void) showItemInFileViewer: (id)sender;
 - (void) showItemSettings: (id)sender;

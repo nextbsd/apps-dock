@@ -167,33 +167,41 @@
       NSString *path = [paths objectAtIndex:i];
       NSString *bundlePath = [DockItem applicationBundlePathForPath:path];
       NSString *applicationPath = [bundlePath length] ? bundlePath : path;
-      DockItem *transientItem;
+      DockItem *item;
       NSUInteger transientIndex;
       BOOL isDir = NO;
 
-      if ([[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir] &&
-	  ![self applicationBundlePathIsBuiltIn:applicationPath] &&
-	  ![self dockHasApplicationPath:applicationPath])
+      if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir] ||
+	  [self applicationBundlePathIsBuiltIn:applicationPath] ||
+	  [self dockHasApplicationPath:applicationPath])
 	{
-	  DockItem *item = [DockItem applicationItemWithPath:applicationPath];
-
-	  transientItem = [self transientApplicationItemMatchingBundlePath:applicationPath];
-	  transientIndex = transientItem ? [self indexForItem:transientItem] : NSNotFound;
-	  if (transientIndex != NSNotFound)
-	    {
-	      [_items removeObjectAtIndex:transientIndex];
-	      if (transientIndex < insertionIndex && insertionIndex > 0)
-		{
-		  insertionIndex--;
-		}
-	    }
-
-	  [self setApplicationPath:applicationPath keptInDock:YES];
-	  [item setPinned:YES];
-	  [_items insertObject:item atIndex:insertionIndex];
-	  insertionIndex++;
-	  added = YES;
+	  continue;
 	}
+
+      /* An app that is running but not kept moves up from the running
+       * apps, with its running dot and windows: the same tile, kept. */
+      item = [self transientApplicationItemMatchingBundlePath:applicationPath];
+      transientIndex = item ? [self indexForItem:item] : NSNotFound;
+      if (transientIndex != NSNotFound)
+	{
+	  RETAIN(item);
+	  [_items removeObjectAtIndex:transientIndex];
+	  AUTORELEASE(item);
+	  if (transientIndex < insertionIndex && insertionIndex > 0)
+	    {
+	      insertionIndex--;
+	    }
+	}
+      else
+	{
+	  item = [DockItem applicationItemWithPath:applicationPath];
+	}
+
+      [self forgetLegacyKeepInDockForApplicationPath:applicationPath];
+      [item setPinned:YES];
+      [_items insertObject:item atIndex:insertionIndex];
+      insertionIndex++;
+      added = YES;
     }
 
   if (added)
@@ -201,6 +209,60 @@
       [self savePersistedApplications];
       [self refreshDock];
     }
+}
+
+/* Whether an app's tile stands for a process that is running now. */
+- (BOOL) applicationItemIsRunning: (DockItem *)item
+{
+  if ([item kind] != DockItemApplication)
+    {
+      return [item state] != DockItemNotRunning;
+    }
+  return [item state] != DockItemNotRunning ||
+    [[self runningProcessIdentifiersForApplicationItem:item] count] > 0;
+}
+
+/*
+ * Keep in Dock, as on macOS: a kept app's tile stays in the kept apps
+ * (after the Workspace tile) whether or not the app runs, and the Dock
+ * remembers it. An app that isn't kept shows with the running apps
+ * only while it runs. Keeping one moves its tile to the end of the
+ * kept apps; no longer keeping a running one moves it to the start of
+ * the running apps, where it stays until it quits.
+ */
+- (void) keepApplicationItemInDock: (DockItem *)item
+{
+  NSUInteger index = [self indexForItem:item];
+
+  if (index == NSNotFound || [item isPinned] || ![[item path] length])
+    {
+      return;
+    }
+  RETAIN(item);
+  [_items removeObjectAtIndex:index];
+  [item setPinned:YES];
+  [_items insertObject:item atIndex:[self pinnedApplicationCount]];
+  RELEASE(item);
+  [self forgetLegacyKeepInDockForApplicationPath:[item path]];
+}
+
+- (void) stopKeepingApplicationItemInDock: (DockItem *)item
+{
+  NSUInteger index = [self indexForItem:item];
+
+  if (index == NSNotFound || ![item isPinned])
+    {
+      return;
+    }
+  RETAIN(item);
+  [_items removeObjectAtIndex:index];
+  [item setPinned:NO];
+  [item setGapBefore:NO];
+  if ([self applicationItemIsRunning:item])
+    {
+      [_items insertObject:item atIndex:[self pinnedApplicationCount]];
+    }
+  RELEASE(item);
 }
 
 - (void) dockViewDidMoveItemFromIndex: (NSUInteger)fromIndex
@@ -221,6 +283,13 @@
     }
   else if (fromIndex >= pinnedCount && toIndex <= pinnedCount)
     {
+      /* Only an app can be kept: a minimized window stays with the
+       * other windows. */
+      if ([(DockItem *)[_items objectAtIndex:fromIndex] kind]
+	  != DockItemApplication)
+	{
+	  return;
+	}
       promoteItem = YES;
     }
 
@@ -239,6 +308,7 @@
   if (promoteItem)
     {
       [item setPinned:YES];
+      [self forgetLegacyKeepInDockForApplicationPath:[item path]];
     }
   [_items insertObject:item atIndex:toIndex];
   DESTROY(item);
@@ -257,6 +327,17 @@
     }
 
   item = [_items objectAtIndex:index];
+  /* A kept app that runs, dragged out of the Dock, is no longer kept:
+   * it stays with the running apps until it quits. */
+  if ([item kind] == DockItemApplication && [item isPinned] &&
+      [self applicationItemIsRunning:item])
+    {
+      [self stopKeepingApplicationItemInDock:item];
+      [self savePersistedApplications];
+      [self refreshDock];
+      [self playDockRemovalSoundIfEnabled];
+      return;
+    }
   if (![self canRemoveDockItemAtIndex:index])
     {
       return;
@@ -277,36 +358,39 @@
 
 - (BOOL) dockView: (id)dockView canRemoveItemAtIndex: (NSUInteger)index
 {
+  DockItem *item;
+
+  if (index >= [_items count])
+    {
+      return NO;
+    }
+  item = [_items objectAtIndex:index];
+  /* Dragging a running kept app out stops keeping it. */
+  if ([item kind] == DockItemApplication && [item isPinned])
+    {
+      return YES;
+    }
   return [self canRemoveDockItemAtIndex:index];
 }
 
 - (BOOL) dockView: (id)dockView itemIsKeptInDock: (DockItem *)item
 {
-  [self resolvePathForX11WindowItem:item];
-  return [self applicationPathIsKeptInDock:[item path]];
+  return [item isPinned];
 }
 
+/* Keep in Dock, or Remove from Dock: whether the tile stays after the
+ * app quits. A running app always keeps a tile while it runs. */
 - (void) dockView: (id)dockView didToggleKeepInDockForItem: (DockItem *)item
 {
-  NSInteger i;
-  BOOL keep;
-
-  [self resolvePathForX11WindowItem:item];
-  if (![[item path] length])
+  if ([item isPinned])
     {
-      return;
+      [self stopKeepingApplicationItemInDock:item];
+      [self playDockRemovalSoundIfEnabled];
     }
-  keep = ![self applicationPathIsKeptInDock:[item path]];
-  [self setApplicationPath:[item path] keptInDock:keep];
-  for (i = [_items count] - 1; i >= 0; i--)
+  else
     {
-      DockItem *candidate = [_items objectAtIndex:i];
-
-      if (![self applicationPathIsKeptInDock:[candidate path]])
-        {
-          [_windowManager hideDockedWindow:[candidate xWindow]];
-          [_items removeObjectAtIndex:i];
-        }
+      [self resolvePathForX11WindowItem:item];
+      [self keepApplicationItemInDock:item];
     }
   [self savePersistedApplications];
   [self refreshDock];

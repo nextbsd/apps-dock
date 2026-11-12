@@ -140,14 +140,17 @@
       [menu addItem:[NSMenuItem separatorItem]];
     }
 
-  menuItem = [self menuItemWithTitle:@"Keep In Dock"
-                              action:@selector(toggleKeepInDock:)
-                                item:item];
-  [menuItem setState:([_delegate respondsToSelector:
-                                @selector(dockView:itemIsKeptInDock:)] &&
-                      ![_delegate dockView:self itemIsKeptInDock:item])
-                     ? NSOffState : NSOnState];
-  [menuItem setEnabled:hasPath];
+  /* Plain actions, never checked: Keep in Dock puts the tile with the
+   * kept apps; Remove from Dock takes it out of them (a running app
+   * then stays with the running apps until it quits). The one that
+   * already applies does nothing. */
+  menuItem = [self menuItemWithTitle:@"Keep in Dock"
+			      action:@selector(keepItemInDock:)
+				item:item];
+  [menu addItem:menuItem];
+  menuItem = [self menuItemWithTitle:@"Remove from Dock"
+			      action:@selector(removeItemFromDock:)
+				item:item];
   [menu addItem:menuItem];
 
   menuItem = [self menuItemWithTitle:@"Open At Login"
@@ -224,13 +227,36 @@
 }
 
 
-- (void) toggleKeepInDock: (id)sender
+- (BOOL) itemIsKeptInDock: (DockItem *)item
 {
-  if ([_delegate respondsToSelector:
-                 @selector(dockView:didToggleKeepInDockForItem:)])
+  if ([_delegate respondsToSelector:@selector(dockView:itemIsKeptInDock:)])
     {
-      [_delegate dockView:self
-          didToggleKeepInDockForItem:[sender representedObject]];
+      return [_delegate dockView:self itemIsKeptInDock:item];
+    }
+  return [item isPinned];
+}
+
+- (void) keepItemInDock: (id)sender
+{
+  DockItem *item = [sender representedObject];
+
+  if (![self itemIsKeptInDock:item] &&
+      [_delegate respondsToSelector:
+		   @selector(dockView:didToggleKeepInDockForItem:)])
+    {
+      [_delegate dockView:self didToggleKeepInDockForItem:item];
+    }
+}
+
+- (void) removeItemFromDock: (id)sender
+{
+  DockItem *item = [sender representedObject];
+
+  if ([self itemIsKeptInDock:item] &&
+      [_delegate respondsToSelector:
+		   @selector(dockView:didToggleKeepInDockForItem:)])
+    {
+      [_delegate dockView:self didToggleKeepInDockForItem:item];
     }
 }
 
