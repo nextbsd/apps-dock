@@ -309,6 +309,35 @@ not quit the application.
 Run `sh Tests/run-keep-in-dock.sh` to check the menu, the running and kept
 sections, and keeping an app again by dropping it into the dock.
 
+### Keeping applications from other programs
+
+The Dock owns `DockApplications`; other programs don't write it. To keep
+applications in the Dock, post the distributed notification
+`org.nextbsd.Dock.KeepApplications` with a `paths` array of application
+bundle paths in its userInfo. The Dock keeps them in that order at the
+end of the kept applications, the same as dropping them into the kept
+applications' slot there: an application that's already kept stays where
+it is, and a running application that isn't kept moves up from the
+running applications with its running dot and windows. Paths that aren't
+absolute paths to an `.app` bundle on disk are ignored. The Dock saves
+the list as it does after a drop. Nothing answers the notification; if
+the Dock isn't running, the request is lost.
+
+```objc
+[[NSDistributedNotificationCenter defaultCenter]
+  postNotificationName:@"org.nextbsd.Dock.KeepApplications"
+                object:nil
+              userInfo:[NSDictionary dictionaryWithObject:
+                          [NSArray arrayWithObjects:
+                             @"/Applications/Terminal.app", nil]
+                                                   forKey:@"paths"]
+    deliverImmediately:YES];
+```
+
+Workspace's **File → Add to Dock** (and the same command in a File
+Viewer's context menu) sends it for the selected applications
+(nextbsd/apps-workspace#59).
+
 Each running application's context menu includes **Restore**. It activates the
 application even when no minimized-window list is available. GNUstep apps are
 contacted through NSWorkspace; X11 clients are raised through the window manager.
