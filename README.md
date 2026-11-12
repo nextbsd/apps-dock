@@ -10,6 +10,15 @@ It supports two inputs:
 - Discovering small X11 top-level windows, including common WindowMaker
   dockapps, and reparenting them into an X11 dock host.
 
+## NextBSD WindowServer
+
+DockWM also runs on NextBSD's WindowServer (the `nextbsd` GNUstep backend),
+where there is no X display. The dock, pinned apps, launching, running-app
+dots and activating a running app with a double-click all work; the X11 dock
+host, dockapps and the X11 window features (window lists, restoring
+miniwindows, icon-manager hand-off) are skipped. Running apps are found with
+`kern.proc` where `/proc` isn't mounted.
+
 ## Build
 
 ```sh

@@ -18,6 +18,24 @@
 #import <stdlib.h>
 #import <string.h>
 #import <unistd.h>
+#if defined(__FreeBSD__)
+#import <sys/types.h>
+#import <sys/sysctl.h>
+#import <sys/user.h>
+
+/* A process's executable, from the kernel; NULL if it can't be read. */
+static const char *
+KernelExecutablePath(pid_t pid, char *buffer, size_t size)
+{
+  int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, (int)pid };
+
+  if (sysctl(mib, 4, buffer, &size, NULL, 0) != 0 || size <= 1)
+    {
+      return NULL;
+    }
+  return buffer;
+}
+#endif
 
 @implementation RunningApplicationScanner
 
@@ -309,54 +327,91 @@
   return YES;
 }
 
+/* Executable path of every process of this user, keyed by process id.
+ * Read from /proc where it is mounted; NextBSD doesn't mount it, so there
+ * the kernel is asked directly. */
+- (NSDictionary *) runningProcessPathsByIdentifier
+{
+  NSMutableDictionary *result = [NSMutableDictionary dictionary];
+  NSString *procPath = [self procFilesystemPath];
+  NSUInteger i;
+
+  if ([procPath length])
+    {
+      NSArray *entries =
+	[[NSFileManager defaultManager] directoryContentsAtPath:procPath];
+
+      for (i = 0; i < [entries count]; i++)
+	{
+	  NSString *entry = [entries objectAtIndex:i];
+	  NSNumber *pid;
+	  NSString *path;
+
+	  if (![self stringIsProcessIdentifier:entry])
+	    {
+	      continue;
+	    }
+	  pid = [NSNumber numberWithInt:[entry intValue]];
+	  path = [self executablePathForProcessIdentifier:pid];
+	  if ([path length])
+	    {
+	      [result setObject:path forKey:pid];
+	    }
+	}
+      return result;
+    }
+
+#if defined(__FreeBSD__)
+  {
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_UID, (int)getuid() };
+    struct kinfo_proc *procs = NULL;
+    size_t length = 0;
+
+    if (sysctl(mib, 4, NULL, &length, NULL, 0) != 0 || length == 0)
+      {
+	return result;
+      }
+    length += length / 4;	/* room for processes started meanwhile */
+    procs = malloc(length);
+    if (procs == NULL || sysctl(mib, 4, procs, &length, NULL, 0) != 0)
+      {
+	free(procs);
+	return result;
+      }
+    for (i = 0; i < length / sizeof(*procs); i++)
+      {
+	char target[PATH_MAX];
+
+	if (KernelExecutablePath(procs[i].ki_pid, target, sizeof(target)))
+	  {
+	    [result setObject:[self normalizedPath:
+				      [NSString stringWithUTF8String:target]]
+		       forKey:[NSNumber numberWithInt:procs[i].ki_pid]];
+	  }
+      }
+    free(procs);
+  }
+#endif
+  return result;
+}
+
 - (NSArray *) runningProcessExecutablePaths
 {
-  NSString *procPath = [self procFilesystemPath];
-  NSArray *entries;
+  NSArray *all = [[self runningProcessPathsByIdentifier] allValues];
   NSMutableArray *paths = [NSMutableArray array];
   NSMutableSet *seenPaths = [NSMutableSet set];
   NSUInteger i;
 
-  if (![procPath length])
+  for (i = 0; i < [all count]; i++)
     {
-      return paths;
-    }
-  entries = [[NSFileManager defaultManager] directoryContentsAtPath:procPath];
+      NSString *path = [all objectAtIndex:i];
 
-  for (i = 0; i < [entries count]; i++)
-    {
-      NSString *entry = [entries objectAtIndex:i];
-      NSString *linkPath;
-      char target[PATH_MAX];
-      ssize_t length;
-
-      if (![self stringIsProcessIdentifier:entry])
+      if (![seenPaths containsObject:path])
 	{
-	  continue;
+	  [seenPaths addObject:path];
+	  [paths addObject:path];
 	}
-
-      linkPath = [[procPath stringByAppendingPathComponent:entry]
-		   stringByAppendingPathComponent:@"exe"];
-      length = readlink([linkPath fileSystemRepresentation],
-			target,
-			sizeof(target) - 1);
-      if (length <= 0)
-	{
-	  continue;
-	}
-
-      target[length] = '\0';
-      {
-	NSString *path = [self normalizedPath:
-				 [NSString stringWithUTF8String:target]];
-	if ([path length] && ![seenPaths containsObject:path])
-	  {
-	    [seenPaths addObject:path];
-	    [paths addObject:path];
-	  }
-      }
     }
-
   return paths;
 }
 
@@ -369,6 +424,20 @@
   if (![processIdentifier isKindOfClass:[NSNumber class]])
     {
       return nil;
+    }
+
+  if ([[self procFilesystemPath] length] == 0)
+    {
+#if defined(__FreeBSD__)
+      if (!KernelExecutablePath([processIdentifier intValue], target,
+				sizeof(target)))
+	{
+	  return nil;
+	}
+      return [self normalizedPath:[NSString stringWithUTF8String:target]];
+#else
+      return nil;
+#endif
     }
 
   linkPath = [[self procPathForProcessIdentifierString:
@@ -388,45 +457,17 @@
 
 - (NSArray *) runningProcessIdentifiersForApplicationItem: (DockItem *)item
 {
-  NSString *procPath = [self procFilesystemPath];
-  NSArray *entries;
+  NSDictionary *running = [self runningProcessPathsByIdentifier];
+  NSEnumerator *e = [running keyEnumerator];
   NSMutableArray *processIds = [NSMutableArray array];
-  NSUInteger i;
+  NSNumber *pid;
 
-  if (![procPath length])
+  while ((pid = [e nextObject]) != nil)
     {
-      return processIds;
-    }
-  entries = [[NSFileManager defaultManager] directoryContentsAtPath:procPath];
-
-  for (i = 0; i < [entries count]; i++)
-    {
-      NSString *entry = [entries objectAtIndex:i];
-      NSString *linkPath;
-      char target[PATH_MAX];
-      ssize_t length;
-      NSString *processPath;
-
-      if (![self stringIsProcessIdentifier:entry])
+      if ([self applicationItem:item
+	matchesRunningProcessPath:[running objectForKey:pid]])
 	{
-	  continue;
-	}
-
-      linkPath = [[procPath stringByAppendingPathComponent:entry]
-		   stringByAppendingPathComponent:@"exe"];
-      length = readlink([linkPath fileSystemRepresentation],
-			target,
-			sizeof(target) - 1);
-      if (length <= 0)
-	{
-	  continue;
-	}
-
-      target[length] = '\0';
-      processPath = [self normalizedPath:[NSString stringWithUTF8String:target]];
-      if ([self applicationItem:item matchesRunningProcessPath:processPath])
-	{
-	  [processIds addObject:[NSNumber numberWithInt:[entry intValue]]];
+	  [processIds addObject:pid];
 	}
     }
 

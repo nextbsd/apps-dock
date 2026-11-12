@@ -92,6 +92,7 @@ DockViewCalibratedBackgroundColor(NSColor *color)
 - (BOOL) isOpaque;
 - (void) setItems: (NSArray *)items;
 - (void) setPinnedItemCount: (NSUInteger)count;
+- (void) orderOverlayFront: (NSWindow *)window;
 - (void) syncIconWindows;
 - (void) updateIconWindowPositions;
 - (void) positionIconWindow: (NSWindow *)window

@@ -4,6 +4,20 @@
 #import <X11/extensions/shape.h>
 #import <GNUstepGUI/GSDisplayServer.h>
 
+/* The X display behind window, or NULL when the display server isn't X11
+ * (NextBSD's WindowServer): serverDevice is then not a Display. */
+static Display *DockX11Display(NSWindow *window)
+{
+  static Class xgServer = Nil;
+  GSDisplayServer *server = GSServerForWindow(window);
+
+  if (xgServer == Nil)
+    xgServer = NSClassFromString(@"XGServer");
+  if (xgServer == Nil || ![server isKindOfClass:xgServer])
+    return NULL;
+  return (Display *)[server serverDevice];
+}
+
 @implementation DockWindow
 
 - (void) orderWindow: (NSWindowOrderingMode)place relativeTo: (NSInteger)number
@@ -46,8 +60,8 @@
   [super orderWindow:place relativeTo:number];
   /* These unmanaged overlays have no WM frame. A relative restack against
    * a reparented dock client is not necessarily a sibling restack in X11. */
-  if (place == NSWindowAbove)
-    XRaiseWindow((Display *)[GSServerForWindow(self) serverDevice], (Window)[self windowRef]);
+  if (place == NSWindowAbove && DockX11Display(self))
+    XRaiseWindow(DockX11Display(self), (Window)[self windowRef]);
 }
 
 @end
@@ -231,9 +245,11 @@
   [image drawInRect:[self bounds] fromRect:NSZeroRect
          operation:NSCompositeSourceOver fraction:1.0];
 
-  Display *display = (Display *)[GSServerForWindow([self window]) serverDevice];
+  Display *display = DockX11Display([self window]);
   Window native = (Window)[[self window] windowRef];
-  NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:[image TIFFRepresentation]];
+  /* WindowServer composites with alpha; only X11 needs a shape. */
+  NSBitmapImageRep *bitmap = display ?
+    [NSBitmapImageRep imageRepWithData:[image TIFFRepresentation]] : nil;
   if (bitmap)
     {
       NSUInteger width = [bitmap pixelsWide], height = [bitmap pixelsHigh];
@@ -256,7 +272,7 @@
           _shapeSize = shapeSize;
         }
     }
-  XFlush(display);
+  if (display) XFlush(display);
   ASSIGN(_renderedImage, image);
   RELEASE(image);
 }
@@ -288,7 +304,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   RELEASE(content);
   /* GNUstep's collection behavior is a stub. Set native dock/workspace
    * hints before mapping so these windows stay out of task switchers. */
-  Display *display = (Display *)[GSServerForWindow(window) serverDevice];
+  Display *display = DockX11Display(window);
   if (display)
     {
       Window native = (Window)[window windowRef];
@@ -307,7 +323,10 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
         XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&desktop, 1);
       XFlush(display);
     }
+  /* addChildWindow orders it directly above the dock, under the overlays
+   * added before it; put it on top of them. */
   [[dock window] addChildWindow:window ordered:NSWindowAbove];
+  if ([window isVisible]) [dock orderOverlayFront:window];
   return window;
 }
 
@@ -323,7 +342,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   BOOL changed = NO;
 
   if (!dock || ![dock isVisible] || ![_iconWindows count]) return;
-  display = (Display *)[GSServerForWindow(dock) serverDevice];
+  display = DockX11Display(dock);
   if (!display) return;
   ancestor = (Window)[dock windowRef];
   /* The managed client and our unmanaged overlays are not siblings.
@@ -433,6 +452,21 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
     }
 }
 
+/* Overlays stack over the dock in the order they were added: icons, then
+ * the indicators and separators drawn on top of them. Ordering each one
+ * directly above the dock would put it under the ones before it; X11 hides
+ * that for these unmanaged windows, but WindowServer stacks exactly as
+ * asked, so order it above the topmost visible overlay instead. */
+- (void) orderOverlayFront: (NSWindow *)window
+{
+  NSInteger sibling = [[self window] windowNumber];
+
+  for (NSWindow *child in [[self window] childWindows])
+    if (child != window && [child isVisible])
+      sibling = [child windowNumber];
+  [window orderWindow:NSWindowAbove relativeTo:sibling];
+}
+
 - (void) syncIconWindows
 {
   if (_syncingIconWindows || !_items) return;
@@ -442,9 +476,10 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
    * interaction belongs to the individual icon windows. */
   if (!_iconWindows)
     {
-      Display *display = (Display *)[GSServerForWindow([self window]) serverDevice];
-      XShapeCombineRectangles(display, (Window)[[self window] windowRef],
-                             ShapeBounding, 0, 0, NULL, 0, ShapeSet, Unsorted);
+      Display *display = DockX11Display([self window]);
+      if (display)
+        XShapeCombineRectangles(display, (Window)[[self window] windowRef],
+                               ShapeBounding, 0, 0, NULL, 0, ShapeSet, Unsorted);
       [[self window] setHasShadow:NO];
       _iconWindows = [[NSMutableDictionary alloc] init];
     }
@@ -469,7 +504,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       if ([[self window] isVisible])
         {
           if (![window isVisible])
-            [window orderWindow:NSWindowAbove relativeTo:[[self window] windowNumber]];
+            [self orderOverlayFront:window];
         }
       else if ([window isVisible]) [window orderOut:nil];
       [(DockIconContentView *)[window contentView] refreshRendering];
@@ -505,7 +540,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       if ([[self window] isVisible])
         {
           if (![window isVisible])
-            [window orderWindow:NSWindowAbove relativeTo:[[self window] windowNumber]];
+            [self orderOverlayFront:window];
         }
       else if ([window isVisible]) [window orderOut:nil];
       [(DockIconContentView *)[window contentView] refreshRendering];
@@ -530,7 +565,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       if ([[self window] isVisible])
         {
           if (![window isVisible])
-            [window orderWindow:NSWindowAbove relativeTo:[[self window] windowNumber]];
+            [self orderOverlayFront:window];
         }
       else if ([window isVisible]) [window orderOut:nil];
       [(DockIconContentView *)[window contentView] refreshRendering];
