@@ -91,6 +91,20 @@ values: `BatteryPercent`, `BatteryCharging`, `BatteryOnAC`, `WiFiSSID`,
 The extras that ship with the Dock are built from `Extras/` and installed
 into `$(GNUSTEP_LIBRARY)/DockExtras` with it.
 
+Bundled extras:
+
+- **Date and clock** (`Clock.dockextra`): the time with the day and
+  date, digital or analog, fitted to the cell. A click shows a month
+  calendar (the arrows, the scroll wheel or Page Up/Down change the
+  month; Escape or another click on the tile closes it); the right-click
+  menu sets digital or analog, 24-hour, seconds and the date
+  (`DockExtraClockAnalog`, `DockExtraClock24Hour`,
+  `DockExtraClockShowsSeconds`, `DockExtraClockShowsDate`). It wakes on
+  the minute, or the second, from a timerfd armed for the wall clock's
+  next boundary with `TFD_TIMER_CANCEL_ON_SET`, so setting the clock
+  redraws it at once. Time zone changes come from notify(3)
+  (`com.apple.system.timezone`) where something posts it, and from
+  `/etc/localtime`'s change time, read on each tick.
 
 ## Build
 
