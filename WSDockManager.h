@@ -53,6 +53,9 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
 - (void) wsDockManager: (WSDockManager *)manager
       didUpdatePreview: (NSImage *)preview
 	     forWindow: (unsigned long)window;
+@optional
+/* The menu bar strip along the top (-menuBarHeight) changed. */
+- (void) wsDockManagerMenuBarDidChange: (WSDockManager *)manager;
 @end
 
 @interface WSDockManager : NSObject
@@ -70,6 +73,7 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
   BOOL _edgeKnown;
   DockEdge _edge;
   unsigned int _edgeThickness;
+  unsigned int _menuBarHeight;
 }
 
 /* YES when this process draws through the nextbsd backend. */
@@ -96,6 +100,9 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
  * WindowServer, so that tiling keeps that strip free (servers with
  * WS_SERVER_DOCK_EDGE; sent again on connecting). */
 - (void) setDockEdge: (DockEdge)edge thickness: (CGFloat)thickness;
+/* The height of the Mac menu bar along the top of the screen
+ * (NBMenuStyle macmenubar), which the Dock stays below; 0 for none. */
+- (CGFloat) menuBarHeight;
 
 /* The X11DockManager calls AppController makes. */
 - (void) setDockPlacement: (DockPlacement)placement;

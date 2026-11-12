@@ -161,6 +161,15 @@ watchedModes(void)
       return NO;
     }
   _connection = conn;
+#ifdef WS_SERVER_MENU_BAR
+  /* A Mac menu bar already along the top: the Dock goes below it. */
+  _menuBarHeight = ws_menu_bar_height(conn);
+  if (_menuBarHeight > 0
+      && [_delegate respondsToSelector:@selector(wsDockManagerMenuBarDidChange:)])
+    {
+      [_delegate wsDockManagerMenuBarDidChange:self];
+    }
+#endif
   /* With MinimizeIntoDock on, WindowServer hands the minimized windows
    * to this Dock instead of drawing tiles (WS_EVENT_DOCK_STATE). */
   ws_dock_show_minimized(conn, 1);
@@ -253,6 +262,19 @@ handleEvent(ws_connection_t *conn, const ws_event_t *ev, void *ctx)
     case WS_EVENT_PREVIEW_CHANGED:
       [self requestPreviewForWindow:ev->hdr.window];
       break;
+#ifdef WS_SERVER_MENU_BAR
+    case WS_EVENT_USABLE_AREA:
+      /* The active app's Mac menu bar came, went or changed height. */
+      if (ev->u.usable_area.menu_bar != _menuBarHeight)
+	{
+	  _menuBarHeight = ev->u.usable_area.menu_bar;
+	  if ([_delegate respondsToSelector:@selector(wsDockManagerMenuBarDidChange:)])
+	    {
+	      [_delegate wsDockManagerMenuBarDidChange:self];
+	    }
+	}
+      break;
+#endif
     case WS_EVENT_PREVIEW:
       /* An answer that came after its request timed out. */
       if (ev->u.preview.fd >= 0)
@@ -887,6 +909,11 @@ imageFromSnapshot(const ws_snapshot_t *snap)
 #ifdef DOCK_HAVE_WINDOWSERVER
   [self sendDockEdge];
 #endif
+}
+
+- (CGFloat) menuBarHeight
+{
+  return (CGFloat)_menuBarHeight;
 }
 
 /* Under WindowServer, where minimized windows go is WindowServer's

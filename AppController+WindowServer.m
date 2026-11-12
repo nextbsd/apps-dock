@@ -179,6 +179,15 @@ static NSSet *knownWindowProcesses = nil;
 
 /* ---- WSDockManagerDelegate ---- */
 
+/* A Mac menu bar came, went or changed height: stay below it. */
+- (void) wsDockManagerMenuBarDidChange: (WSDockManager *)manager
+{
+  if (_window != nil)
+    {
+      [self applyDockPlacement];
+    }
+}
+
 - (void) wsDockManagerDidUpdateWindowList: (WSDockManager *)manager
 {
   NSArray *minimized = [manager dockMinimizedWindows];
