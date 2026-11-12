@@ -10,6 +10,7 @@
  */
 
 #import "DockPreferences.h"
+#import <GNUstepGUI/GSTheme.h>
 
 static CGFloat DockCell = 64.0;
 static CGFloat DockGap = 2.0;
@@ -97,6 +98,52 @@ static NSString *DockScaleDefaultsKey = @"DockScale";
     case DockEdgeRight:
     default:
       return DockPlacementRightTop;
+    }
+}
+
++ (BOOL) placement: (DockPlacement *)placement forDockPosition: (id)position
+{
+  if (![position isKindOfClass:[NSString class]])
+    {
+      return NO;
+    }
+  if ([position isEqualToString:@"right"])
+    {
+      *placement = DockPlacementRightTop;
+    }
+  else if ([position isEqualToString:@"left"])
+    {
+      *placement = DockPlacementLeftTop;
+    }
+  else if ([position isEqualToString:@"top"])
+    {
+      *placement = DockPlacementTopCenter;
+    }
+  else if ([position isEqualToString:@"bottom"])
+    {
+      *placement = DockPlacementBottomCenter;
+    }
+  else
+    {
+      return NO;
+    }
+  return YES;
+}
+
+static NSString *
+dockPositionForPlacement(DockPlacement placement)
+{
+  switch ([DockPreferences edgeForPlacement:placement])
+    {
+    case DockEdgeLeft:
+      return @"left";
+    case DockEdgeTop:
+      return @"top";
+    case DockEdgeBottom:
+      return @"bottom";
+    case DockEdgeRight:
+    default:
+      return @"right";
     }
 }
 
@@ -213,27 +260,64 @@ placementFromDefault(id value, DockPlacement *placement)
 }
 
 /*
- * On WindowServer the Dock fills a whole screen edge: the saved
- * placement's edge, or the right edge when none is saved (X11's
- * DockOnRight and DockCentered don't apply).
+ * On WindowServer the Dock fills a whole screen edge, from the desktop
+ * setting NBDockPosition, looked up as nextbsd-theme's
+ * NBDesktopSettings.h does (keep them in step): the user's choice
+ * (Workspace Preferences writes it to NSGlobalDomain), then the active
+ * theme's Info.plist, then the right edge. DockPlacement stays X11's
+ * (Gershwin's); WindowServer ignores it and X11's DockOnRight and
+ * DockCentered.
  */
 - (DockPlacement) savedWindowServerDockPlacement
 {
   DockPlacement placement;
 
-  if (!placementFromDefault([[NSUserDefaults standardUserDefaults]
-			      objectForKey:@"DockPlacement"], &placement))
+  if ([DockPreferences placement:&placement
+		 forDockPosition:[[NSUserDefaults standardUserDefaults]
+				   objectForKey:DockPositionDefaultsKey]])
     {
-      return DockPlacementRightTop;
+      return placement;
     }
-  return [DockPreferences placementForEdge:
-			    [DockPreferences edgeForPlacement:placement]];
+  if ([DockPreferences placement:&placement
+		 forDockPosition:[[[GSTheme theme] infoDictionary]
+				   objectForKey:DockPositionDefaultsKey]])
+    {
+      return placement;
+    }
+  return DockPlacementRightTop;
 }
 
 - (void) saveDockPlacement: (DockPlacement)placement
 {
   [[NSUserDefaults standardUserDefaults] setInteger:placement
 					     forKey:@"DockPlacement"];
+}
+
+- (void) saveDockPosition: (DockPlacement)placement
+{
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSDictionary *existing = [defaults persistentDomainForName:NSGlobalDomain];
+  NSMutableDictionary *domain = existing
+    ? [NSMutableDictionary dictionaryWithDictionary:existing]
+    : [NSMutableDictionary dictionary];
+  NSString *position = dockPositionForPlacement(placement);
+
+  [domain setObject:position forKey:DockPositionDefaultsKey];
+  [defaults setPersistentDomain:domain forName:NSGlobalDomain];
+  [defaults synchronize];
+
+  NS_DURING
+    [[NSDistributedNotificationCenter defaultCenter]
+      postNotificationName:DockDesktopSettingsChangedNotification
+		    object:nil
+		  userInfo:[NSDictionary dictionaryWithObjectsAndKeys:
+					   DockPositionDefaultsKey, @"key",
+					 position, @"value", nil]
+	deliverImmediately:YES];
+  NS_HANDLER
+    NSLog(@"DockWM: can't post %@: %@",
+	  DockDesktopSettingsChangedNotification, [localException reason]);
+  NS_ENDHANDLER
 }
 
 - (NSColor *) savedBackgroundColor

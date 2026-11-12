@@ -280,10 +280,13 @@ itemWigglesOnAttentionRequest: (DockItem *)item
      didChangeDockPlacement: (DockPlacement)placement
 {
   _dockPlacement = placement;
-  /* applyDockPlacement saves it under X11 itself. */
+  /* applyDockPlacement saves it under X11 itself. On WindowServer the
+   * edge is the desktop setting NBDockPosition, the user's choice as
+   * in Workspace Preferences; DockPlacement is kept in step for X11. */
   if ([WSDockManager isWindowServerSession])
     {
       [_preferences saveDockPlacement:placement];
+      [_preferences saveDockPosition:placement];
     }
   [self applyDockPlacement];
 }
