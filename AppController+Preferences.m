@@ -146,7 +146,8 @@
 
 /* The empty gaps between the Dock's sections on WindowServer: one
  * before the running apps that aren't kept, one before the minimized
- * windows, each only when its section has something in it. */
+ * windows and one before the Dock extras, each only when its section
+ * has something in it. */
 - (NSUInteger) dockSectionGapCount
 {
   NSUInteger pinned = [self pinnedApplicationCount];
@@ -161,7 +162,8 @@
       else
 	running = YES;
     }
-  return (running ? 1 : 0) + (windows ? 1 : 0);
+  return (running ? 1 : 0) + (windows ? 1 : 0)
+    + ([self dockExtraCount] > 0 ? 1 : 0);
 }
 
 /*

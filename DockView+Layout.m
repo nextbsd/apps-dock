@@ -200,6 +200,31 @@
 }
 
 
+/* The divider that sets the Dock extras off from the items, across
+ * the flexible gap: in the middle of an empty section gap before the
+ * first extra. */
+- (NSRect) extrasSeparatorRect
+{
+  NSRect first;
+  /* The line keeps its proportions when the tiles shrink to fit. */
+  CGFloat inset = floor(DockSeparatorInset * _cellSize / DockCell);
+  CGFloat half = floor(([self sectionGap] + _dockGap) / 2.0);
+
+  if (!_fillsColumn || ![_extras count])
+    {
+      return NSZeroRect;
+    }
+  first = [self extraCellAtIndex:0];
+  if (_horizontal)
+    {
+      return NSMakeRect(NSMinX(first) - half, NSMinY(first) + inset,
+			1.0, NSHeight(first) - 2.0 * inset);
+    }
+  return NSMakeRect(NSMinX(first) + inset, NSMaxY(first) + half,
+		    NSWidth(first) - 2.0 * inset, 1.0);
+}
+
+
 - (NSRect) extraCellAtIndex: (NSUInteger)index
 {
   NSRect recycler;
