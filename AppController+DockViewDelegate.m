@@ -141,6 +141,7 @@
       BOOL isDir = NO;
 
       if ([[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir] &&
+	  ![self applicationBundlePathIsBuiltIn:applicationPath] &&
 	  ![self dockHasApplicationPath:applicationPath])
 	{
 	  DockItem *item = [DockItem applicationItemWithPath:applicationPath];
@@ -482,44 +483,45 @@
 }
 
 
+/* The top tile is Workspace, as on NeXTSTEP: activate it, or start it. */
 - (void) dockViewDidActivateTopIcon
 {
-  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationDirectory,
-						       NSAllDomainsMask,
-						       YES);
-  NSUInteger i;
+  NSString *path = [self workspaceApplicationPath];
+  DockItem *item;
+  NSString *executablePath;
+  BOOL launched = NO;
 
-  for (i = 0; i < [paths count]; i++)
+  if (![path length])
     {
-      NSString *path = [[paths objectAtIndex:i]
-			 stringByAppendingPathComponent:@"GWorkspace.app"];
-      if ([[NSFileManager defaultManager] fileExistsAtPath:path])
-	{
-	  NSString *executablePath = [self executablePathForApplicationPath:path];
-	  BOOL launched = NO;
-
-	  [self rememberLaunchedApplicationPath:path];
-          [self prepareDefaultsForApplicationPath:path];
-	  if ([[NSFileManager defaultManager]
-		isExecutableFileAtPath:executablePath])
-	    {
-	      [self launchTaskWithLaunchPath:executablePath
-				   arguments:[NSArray array]
-			      useIconManager:YES];
-	      launched = YES;
-	    }
-	  else
-	    {
-	      launched = [[NSWorkspace sharedWorkspace] launchApplication:path];
-	    }
-	  if (!launched)
-	    {
-	      [[NSWorkspace sharedWorkspace] openFile:path];
-	    }
-	  [_x11 drainTransientIconEvents];
-	  return;
-	}
+      return;
     }
+  item = [DockItem applicationItemWithPath:path];
+  /* NSWorkspace asks the running app to activate itself. */
+  if ([[self runningProcessIdentifiersForApplicationItem:item] count] > 0 &&
+      [[NSWorkspace sharedWorkspace] launchApplication:path])
+    {
+      return;
+    }
+
+  executablePath = [self executablePathForApplicationPath:path];
+  [self rememberLaunchedApplicationPath:path];
+  [self prepareDefaultsForApplicationPath:path];
+  if ([[NSFileManager defaultManager] isExecutableFileAtPath:executablePath])
+    {
+      [self launchTaskWithLaunchPath:executablePath
+			   arguments:[NSArray array]
+		      useIconManager:YES];
+      launched = YES;
+    }
+  else
+    {
+      launched = [[NSWorkspace sharedWorkspace] launchApplication:path];
+    }
+  if (!launched)
+    {
+      [[NSWorkspace sharedWorkspace] openFile:path];
+    }
+  [_x11 drainTransientIconEvents];
 }
 
 @end

@@ -25,7 +25,7 @@
 {
   if (index == DockHoverTopIcon)
     {
-      return @"DockWM";
+      return @"Workspace";
     }
 
   if (index == DockHoverRecycler)

@@ -68,7 +68,7 @@ typedef enum
   BOOL _draggingPaths;
   BOOL _performedDragOperation;
   NSPasteboard *_dragPasteboard;
-  NSImage *_gnustepIcon;
+  NSImage *_topTileIcon;
   NSImage *_recyclerIcon;
   NSImage *_cellBackgroundImage;
   NSColor *_backgroundColor;
@@ -113,6 +113,8 @@ typedef enum
 - (void) setShowsBorder: (BOOL)showsBorder;
 - (BOOL) showsBorder;
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode;
+/* The top tile's icon: Workspace's, or the GNUstep logo when nil. */
+- (void) setTopTileIcon: (NSImage *)icon;
 - (DockRunningIndicatorMode) runningIndicatorMode;
 - (void) setRecyclerHasContents: (BOOL)hasContents;
 - (void) setIconCellSize: (CGFloat)cellSize

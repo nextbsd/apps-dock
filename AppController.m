@@ -82,6 +82,7 @@
   [_dockView setTooltipDelay:[_preferences savedTooltipDelay]];
   [_dockView setSingleClickLaunchesApplications:_singleClickLaunchesApplications];
   [_dockView setItems:_items];
+  [_dockView setTopTileIcon:[self workspaceIcon]];
   [_dockView setPinnedItemCount:[self pinnedApplicationCount]];
   [_dockView setMenu:[self dockMenu]];
   [_window setContentView:_dockView];

@@ -641,7 +641,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
     }
   else if (kind == 3)
     {
-      [state addObject:_gnustepIcon ? (id)_gnustepIcon : empty];
+      [state addObject:_topTileIcon ? (id)_topTileIcon : empty];
     }
   else if (kind == 4)
     {

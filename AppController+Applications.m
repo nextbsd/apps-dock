@@ -28,7 +28,10 @@
   [_applicationStore loadPersistedApplicationsIntoItems:_items];
   for (i = [_items count] - 1; i >= 0; i--)
     {
-      if (![self applicationPathIsKeptInDock:[[_items objectAtIndex:i] path]])
+      NSString *path = [[_items objectAtIndex:i] path];
+
+      if (![self applicationPathIsKeptInDock:path] ||
+          [self applicationBundlePathIsWorkspace:path])
         {
           [_items removeObjectAtIndex:i];
         }
@@ -244,7 +247,7 @@
   bundlePath = [DockItem applicationBundlePathForPath:processPath];
   if (![bundlePath length] ||
       ![self applicationPathIsKeptInDock:bundlePath] ||
-      [self applicationBundlePathIsDockWM:bundlePath] ||
+      [self applicationBundlePathIsBuiltIn:bundlePath] ||
       [self dockHasApplicationPath:bundlePath])
     {
       return nil;
@@ -339,6 +342,53 @@
     }
 
   return [bundleName isEqualToString:@"dockwm.app"];
+}
+
+/* Workspace is the dock's top tile, so it is never also an item and can't be
+ * removed. FileViewer.app is its old name. */
+- (BOOL) applicationBundlePathIsWorkspace: (NSString *)path
+{
+  NSString *bundlePath = [DockItem applicationBundlePathForPath:path];
+  NSString *bundleName = [[([bundlePath length] ? bundlePath : path)
+			    lastPathComponent] lowercaseString];
+
+  return [bundleName isEqualToString:@"workspace.app"] ||
+    [bundleName isEqualToString:@"fileviewer.app"];
+}
+
+/* Workspace.app from the first Applications folder that has it, or nil. */
+- (NSString *) workspaceApplicationPath
+{
+  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationDirectory,
+						       NSAllDomainsMask,
+						       YES);
+  NSUInteger i;
+
+  for (i = 0; i < [paths count]; i++)
+    {
+      NSString *path = [[paths objectAtIndex:i]
+			 stringByAppendingPathComponent:@"Workspace.app"];
+
+      if ([[NSFileManager defaultManager] fileExistsAtPath:path])
+	{
+	  return path;
+	}
+    }
+  return nil;
+}
+
+- (NSImage *) workspaceIcon
+{
+  NSString *path = [self workspaceApplicationPath];
+
+  return [path length] ? [[NSWorkspace sharedWorkspace] iconForFile:path] : nil;
+}
+
+/* Apps the dock shows itself rather than as items: DockWM and Workspace. */
+- (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path
+{
+  return [self applicationBundlePathIsDockWM:path] ||
+    [self applicationBundlePathIsWorkspace:path];
 }
 
 - (void) rememberLaunchedApplicationPath: (NSString *)path

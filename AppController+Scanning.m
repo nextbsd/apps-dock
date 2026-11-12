@@ -178,7 +178,7 @@
 
       if (![bundlePath length] ||
           ![self applicationPathIsKeptInDock:bundlePath] ||
-	  [self applicationBundlePathIsDockWM:bundlePath] ||
+	  [self applicationBundlePathIsBuiltIn:bundlePath] ||
 	  [self dockHasApplicationPath:bundlePath] ||
 	  [self transientApplicationItemMatchingBundlePath:bundlePath])
 	{

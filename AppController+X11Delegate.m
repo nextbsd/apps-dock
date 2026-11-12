@@ -254,7 +254,7 @@
     }
   else
     {
-      if (!dockApp && [path length] && ![self applicationBundlePathIsDockWM:path])
+      if (!dockApp && [path length] && ![self applicationBundlePathIsBuiltIn:path])
 	{
 	  NSString *bundlePath = [DockItem applicationBundlePathForPath:path];
 	  NSString *applicationPath = [bundlePath length] ? bundlePath : path;

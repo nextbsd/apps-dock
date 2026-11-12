@@ -285,7 +285,7 @@
   NSRect cell = [self topTileRect];
 
   [self drawCellBackgroundInCell:cell];
-  [self drawImage:_gnustepIcon inCell:cell size:50.0 * (_cellSize / DockCell)];
+  [self drawImage:_topTileIcon inCell:cell size:50.0 * (_cellSize / DockCell)];
 }
 
 

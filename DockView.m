@@ -46,7 +46,7 @@
       _hoverIconScale = 1.2;
       _tooltipDelay = 0.25;
       _runningIndicatorMode = DockRunningIndicatorModeRunningDot;
-      _gnustepIcon = RETAIN([self loadGNUstepIcon]);
+      _topTileIcon = RETAIN([self loadGNUstepIcon]);
       _recyclerIcon = RETAIN([self loadRecyclerIcon]);
       _cellBackgroundImage = RETAIN([self loadCellBackgroundImage]);
       /* GNUstep's X11 backend releases NSDragPboard on target changes,
@@ -86,7 +86,7 @@
     }
   DESTROY(_backgroundColor);
   DESTROY(_cellBackgroundImage);
-  DESTROY(_gnustepIcon);
+  DESTROY(_topTileIcon);
   DESTROY(_recyclerIcon);
   DESTROY(_items);
   DESTROY(_dragPasteboard);
@@ -267,6 +267,14 @@
 - (BOOL) showsBorder
 {
   return _showsBorder;
+}
+
+- (void) setTopTileIcon: (NSImage *)icon
+{
+  ASSIGN(_topTileIcon, icon ? icon : [self loadGNUstepIcon]);
+  [self setNeedsDisplay:YES];
+  if ([self window])
+    [self syncIconWindows];
 }
 
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode
