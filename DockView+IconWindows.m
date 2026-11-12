@@ -692,6 +692,8 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   else if (kind == 3)
     {
       [state addObject:_topTileIcon ? (id)_topTileIcon : empty];
+      [state addObject:[NSNumber numberWithBool:_topTileRunning]];
+      [state addObject:[NSNumber numberWithInteger:_runningIndicatorMode]];
     }
   else if (kind == 4)
     {

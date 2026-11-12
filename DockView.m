@@ -295,6 +295,18 @@
     [self syncIconWindows];
 }
 
+- (void) setTopTileRunning: (BOOL)running
+{
+  if (_topTileRunning == running)
+    {
+      return;
+    }
+  _topTileRunning = running;
+  [self setNeedsDisplay:YES];
+  if ([self window])
+    [self syncIconWindows];
+}
+
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode
 {
   if (mode != DockRunningIndicatorModeNotRunningDots)

@@ -82,6 +82,7 @@ typedef enum
   BOOL _performedDragOperation;
   NSPasteboard *_dragPasteboard;
   NSImage *_topTileIcon;
+  BOOL _topTileRunning;
   NSImage *_recyclerIcon;
   NSImage *_cellBackgroundImage;
   NSColor *_backgroundColor;
@@ -134,6 +135,9 @@ typedef enum
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode;
 /* The top tile's icon: Workspace's, or the GNUstep logo when nil. */
 - (void) setTopTileIcon: (NSImage *)icon;
+/* Whether Workspace, the top tile's app, is running: the tile shows the
+ * running indicator like any other application's. */
+- (void) setTopTileRunning: (BOOL)running;
 - (DockRunningIndicatorMode) runningIndicatorMode;
 - (void) setRecyclerHasContents: (BOOL)hasContents;
 - (void) setIconCellSize: (CGFloat)cellSize

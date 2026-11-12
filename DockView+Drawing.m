@@ -218,15 +218,20 @@
 
 - (void) drawStateForItem: (DockItem *)item inCell: (NSRect)cell
 {
-  CGFloat scale = _cellSize / DockCell;
-  CGFloat dotSize = 5.0 * scale;
-  CGFloat x;
-  CGFloat y = NSMinY(cell) + 2.0 * scale;
-
   if ([item kind] != DockItemApplication)
     {
       return;
     }
+  [self drawRunningState:[item state] != DockItemNotRunning inCell:cell];
+}
+
+
+- (void) drawRunningState: (BOOL)running inCell: (NSRect)cell
+{
+  CGFloat scale = _cellSize / DockCell;
+  CGFloat dotSize = 5.0 * scale;
+  CGFloat x;
+  CGFloat y = NSMinY(cell) + 2.0 * scale;
 
   if (_runningIndicatorMode == DockRunningIndicatorModeNotRunningDots)
     {
@@ -239,7 +244,7 @@
       CGFloat spacing = dotSize + 3.0 * scale;
       CGFloat startX;
 
-      if ([item state] != DockItemNotRunning)
+      if (running)
 	{
 	  return;
 	}
@@ -263,7 +268,7 @@
       return;
     }
 
-  if ([item state] == DockItemNotRunning)
+  if (!running)
     {
       return;
     }
@@ -286,6 +291,7 @@
 
   [self drawCellBackgroundInCell:cell];
   [self drawImage:_topTileIcon inCell:cell size:50.0 * (_cellSize / DockCell)];
+  [self drawRunningState:_topTileRunning inCell:cell];
 }
 
 
