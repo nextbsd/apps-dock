@@ -93,6 +93,17 @@ into `$(GNUSTEP_LIBRARY)/DockExtras` with it.
 
 Bundled extras:
 
+- **Wi-Fi** (`WiFi.dockextra`): signal bars for the network wland has
+  joined, or empty bars when it hasn't; the network in the tooltip. The
+  state is wland's `State:/Network/Interface/<if>/AirPort` in
+  SystemConfiguration, watched with SCDynamicStore notifications. The
+  menu lists the networks of the last scan (scanned again when the menu
+  opens, if the list is older than 20 seconds) and joins one: open
+  networks directly, secured ones after asking for the passphrase in a
+  panel. Scanning, joining and disconnecting go through `wlan(8)`, the
+  supported way for the desktop to drive wland. WPA-Enterprise networks
+  are listed but joined with `wlan connect --eap`. No radio: no tile.
+
 - **Battery** (`Battery.dockextra`): the charge as a battery glyph, a
   bolt on the power adapter, and the percentage (**Show Percentage**,
   `DockExtraBatteryShowsPercentage`); the tooltip has the time remaining
