@@ -62,6 +62,8 @@ typedef enum
 - (void) dockView: (id)dockView activateWindow: (NSNumber *)window
 	  forItem: (DockItem *)item;
 - (void) dockViewDidEmptyRecycler: (id)dockView;
+/* The user dragged a Dock extra: the status area's new order. */
+- (void) dockView: (id)dockView didReorderExtras: (NSArray *)extras;
 @end
 
 @interface DockView : NSView
@@ -110,7 +112,11 @@ typedef enum
   NSTimeInterval _lastMouseDownTime;
   BOOL _singleClickLaunchesApplications;
   BOOL _fillsColumn;
-  CGFloat _statusAreaLength;
+  /* The Dock extras in the status area (see DockExtra.h), top to
+   * bottom, and a count per extra of its redraw requests, so that its
+   * tile is drawn again only when it asked. */
+  NSMutableArray *_extras;
+  NSMutableDictionary *_extraGenerations;
 }
 
 - (void) setDelegate: (id)delegate;
@@ -151,10 +157,28 @@ typedef enum
  */
 - (void) setFillsColumn: (BOOL)fills;
 - (BOOL) fillsColumn;
-/* The status area's length along the column (0: empty for now; the
- * Dock extras of apps-dock#5 will fill it). */
-- (void) setStatusAreaLength: (CGFloat)length;
 
+@end
+
+@interface DockView (Extras)
+/*
+ * The status area's Dock extras, top to bottom (objects conforming to
+ * DockExtra): one tile each, after the minimized windows, along the
+ * Dock (down a column or across a row) when it fills its screen edge.
+ * A click shows the extra's menu, a double-click opens it (when
+ * it can), the scroll wheel goes to it, and dragging moves it within the
+ * status area only: it can't be dragged out or into the Recycler.
+ */
+- (void) setExtras: (NSArray *)extras;
+- (NSArray *) extras;
+/* Draw an extra's tile again: it asked for it. */
+- (void) setNeedsDisplayForExtra: (id)extra;
+/* An extra's tile in screen coordinates; NSZeroRect when it has none. */
+- (NSRect) screenFrameForExtra: (id)extra;
+/* Where a panel (or menu) of this size goes for an extra: beside its
+ * tile, toward the middle of the screen whichever edge the Dock is on,
+ * and on the screen. In screen coordinates. */
+- (NSRect) frameForPanelOfSize: (NSSize)size besideExtra: (id)extra;
 @end
 
 @interface DockView (Wiggle)

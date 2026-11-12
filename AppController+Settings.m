@@ -566,6 +566,18 @@ didChangeItemWigglesOnAttentionRequest: (BOOL)wiggles
   [self emptyRecycler:self];
 }
 
+- (NSArray *) settingsControllerDockExtras: (SettingsController *)controller
+{
+  return [self dockExtrasDescriptions];
+}
+
+- (void) settingsController: (SettingsController *)controller
+       didChangeExtraHidden: (BOOL)hidden
+	      forIdentifier: (NSString *)identifier
+{
+  [self setDockExtraHidden:hidden forIdentifier:identifier];
+}
+
 - (BOOL) settingsControllerKeepsMissingApplications: (SettingsController *)controller
 {
   return [_preferences savedKeepsMissingApplications];

@@ -47,9 +47,16 @@
 {
   NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
   NSUInteger index = [self indexAtPoint:location];
+  NSUInteger extraIndex = [self extraIndexAtPoint:location];
   NSMenu *contextMenu = nil;
 
   [self hideTooltip];
+
+  if (extraIndex != NSNotFound)
+    {
+      [self rightMouseDownOnExtraAtIndex:extraIndex event:event];
+      return;
+    }
 
   if ([self topIconContainsPoint:location])
     {
@@ -71,6 +78,19 @@
 }
 
 
+- (void) scrollWheel: (NSEvent *)event
+{
+  NSUInteger index = [self extraIndexAtPoint:
+			     [self convertPoint:[event locationInWindow]
+				       fromView:nil]];
+
+  if (index != NSNotFound)
+    {
+      [self scrollWheel:event onExtra:[_extras objectAtIndex:index]];
+    }
+}
+
+
 - (void) mouseDown: (NSEvent *)event
 {
   NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
@@ -81,6 +101,16 @@
   BOOL isDoubleClick = NO;
   BOOL topIconClicked = [self topIconContainsPoint:location];
   BOOL recyclerClicked = [self recyclerContainsPoint:location];
+  NSUInteger extraIndex = [self extraIndexAtPoint:location];
+
+  /* Dock extras track their own clicks and drags. */
+  if (extraIndex != NSNotFound)
+    {
+      _lastMouseDownIndex = NSNotFound;
+      _lastMouseDownTime = 0.0;
+      [self mouseDownOnExtraAtIndex:extraIndex event:event];
+      return;
+    }
 
   _mouseDownPoint = location;
   _mouseDownItemIndex = index;

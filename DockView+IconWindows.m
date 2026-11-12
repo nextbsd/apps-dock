@@ -76,9 +76,12 @@ static Display *DockX11Display(NSWindow *window)
   NSSize _shapeSize;
   NSImage *_renderedImage;
   NSArray *_renderState;
+  /* Kind 6: the Dock extra whose tile this is. */
+  id _extra;
 }
 
 - (id) initWithDock: (DockView *)dock item: (DockItem *)item kind: (NSInteger)kind;
+- (void) setExtra: (id)extra;
 - (void) refreshRendering;
 
 @end
@@ -101,6 +104,7 @@ static Display *DockX11Display(NSWindow *window)
 - (void) dealloc
 {
   RELEASE(_item);
+  RELEASE(_extra);
   RELEASE(_shapeData);
   RELEASE(_renderedImage);
   RELEASE(_renderState);
@@ -109,13 +113,18 @@ static Display *DockX11Display(NSWindow *window)
 
 - (BOOL) isOpaque { return NO; }
 
+- (void) setExtra: (id)extra
+{
+  ASSIGN(_extra, extra);
+}
+
 - (void) setFrame: (NSRect)frame
 {
   if (NSEqualRects(frame, [self frame])) return;
   [super setFrame:frame];
   if (_trackingTag) [self removeTrackingRect:_trackingTag];
   _trackingTag = 0;
-  if (_kind == 0 || _kind == 3)
+  if (_kind == 0 || _kind == 3 || _kind == 6)
     _trackingTag = [self addTrackingRect:[self bounds] owner:self
                                userData:NULL assumeInside:NO];
 }
@@ -130,7 +139,9 @@ static Display *DockX11Display(NSWindow *window)
   /* Use the resting cell even when this icon is bouncing. */
   NSPoint location = [event locationInWindow];
   NSRect cell = _kind == 3 ? [_dock topTileRect] :
-    [_dock restingCellForItem:_item];
+    (_kind == 6 ? [_dock extraCellAtIndex:
+			   [[_dock extras] indexOfObjectIdenticalTo:_extra]] :
+     [_dock restingCellForItem:_item]);
   location.x += cell.origin.x;
   location.y += cell.origin.y;
   location = [_dock convertPoint:location toView:nil];
@@ -165,6 +176,13 @@ static Display *DockX11Display(NSWindow *window)
   [_dock mouseExited:event];
 }
 
+/* Scrolling over a Dock extra's tile goes to the extra (the volume). */
+- (void) scrollWheel: (NSEvent *)event
+{
+  if (_kind == 6)
+    [_dock scrollWheel:event onExtra:_extra];
+}
+
 - (NSDragOperation) draggingEntered: (id <NSDraggingInfo>)sender
 {
   return [_dock draggingEntered:sender];
@@ -197,7 +215,8 @@ static Display *DockX11Display(NSWindow *window)
 
 - (void) refreshRendering
 {
-  NSArray *state = [_dock renderStateForItem:_item kind:_kind];
+  NSArray *state = _kind == 6 ? [_dock renderStateForExtra:_extra] :
+    [_dock renderStateForItem:_item kind:_kind];
   if (![_renderState isEqual:state])
     {
       ASSIGNCOPY(_renderState, state);
@@ -239,6 +258,7 @@ static Display *DockX11Display(NSWindow *window)
       [[NSColor colorWithCalibratedWhite:1.0 alpha:0.55] set];
       NSRectFill([self bounds]);
     }
+  else if (_kind == 6) [_dock drawExtraWindowForExtra:_extra];
   else [_dock drawIconWindowForItem:_item];
   [image unlockFocus];
   NSRectFillUsingOperation(rect, NSCompositeClear);
@@ -288,7 +308,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   [window setBackgroundColor:[NSColor clearColor]];
   [window setHasShadow:NO];
   [window setLevel:NSDockWindowLevel];
-  [window setIgnoresMouseEvents:kind != 0 && kind != 3];
+  [window setIgnoresMouseEvents:kind != 0 && kind != 3 && kind != 6];
   [window setAcceptsMouseMovedEvents:YES];
   [window setExcludedFromWindowsMenu:YES];
   [window setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces |
@@ -298,6 +318,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
     (kind == 2 ? [NSString stringWithFormat:@"%@ state", [item title]] :
     (item ? [item title] : @"Recycler"))))];
   if (kind == 5) [window setTitle:@"Dock section separator"];
+  if (kind == 6) [window setTitle:@"Dock extra"];
   DockIconContentView *content = [[DockIconContentView alloc] initWithDock:dock
     item:item kind:kind];
   [window setContentView:content];
@@ -313,7 +334,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       attributes.override_redirect = True;
       XChangeWindowAttributes(display, native, CWOverrideRedirect, &attributes);
       XShapeCombineRectangles(display, native, ShapeBounding, 0, 0, NULL, 0, ShapeSet, Unsorted);
-      if (kind != 0 && kind != 3)
+      if (kind != 0 && kind != 3 && kind != 6)
         XShapeCombineRectangles(display, native, ShapeInput, 0, 0, NULL, 0, ShapeSet, Unsorted);
       unsigned long desktop = 0xffffffffUL;
       Atom type = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
@@ -574,6 +595,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       else if ([window isVisible]) [window orderOut:nil];
       [(DockIconContentView *)[window contentView] refreshRendering];
     }
+  [self syncExtraWindows:liveKeys];
   for (id key in AUTORELEASE([[_iconWindows allKeys] copy]))
     if (![liveKeys containsObject:key])
       {
@@ -701,5 +723,73 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   [NSGraphicsContext restoreGraphicsState];
 }
 
+
+/* The status area: a tile window per Dock extra, drawn by the extra. */
+- (void) syncExtraWindows: (NSMutableSet *)liveKeys
+{
+  NSUInteger i;
+
+  for (i = 0; i < [_extras count]; i++)
+    {
+      id extra = [_extras objectAtIndex:i];
+      NSString *key = [NSString stringWithFormat:@"extra-%p", extra];
+      NSWindow *window = [_iconWindows objectForKey:key];
+      NSRect cell = [self extraCellAtIndex:i];
+
+      if (NSIsEmptyRect(cell)) continue;
+      [liveKeys addObject:key];
+      if (!window)
+        {
+          window = NewIconWindow(self, nil, 6);
+          [(DockIconContentView *)[window contentView] setExtra:extra];
+          [_iconWindows setObject:window forKey:key];
+          RELEASE(window);
+        }
+      [self positionIconWindow:window inCell:cell bounceStart:0.0 time:0.0];
+      if ([[self window] isVisible])
+        {
+          if (![window isVisible])
+            [self orderOverlayFront:window];
+        }
+      else if ([window isVisible]) [window orderOut:nil];
+      [(DockIconContentView *)[window contentView] refreshRendering];
+    }
+}
+
+- (void) refreshExtraWindow: (id)extra
+{
+  NSWindow *window = [_iconWindows objectForKey:
+    [NSString stringWithFormat:@"extra-%p", extra]];
+
+  [(DockIconContentView *)[window contentView] refreshRendering];
+}
+
+- (NSArray *) renderStateForExtra: (id)extra
+{
+  NSNumber *generation = [_extraGenerations objectForKey:
+    [NSValue valueWithPointer:extra]];
+
+  return [NSArray arrayWithObjects:
+    [NSNumber numberWithDouble:_cellSize],
+    [NSNumber numberWithBool:_usesCellBackgroundTile],
+    _cellBackgroundImage ? (id)_cellBackgroundImage : (id)[NSNull null],
+    generation ? generation : [NSNumber numberWithUnsignedInteger:0],
+    nil];
+}
+
+- (void) drawExtraWindowForExtra: (id)extra
+{
+  NSRect cell = NSMakeRect(0.0, 0.0, _cellSize, _cellSize);
+
+  if ([_extras indexOfObjectIdenticalTo:extra] == NSNotFound) return;
+  if (_usesCellBackgroundTile) [self drawCellBackgroundInCell:cell];
+  [NSGraphicsContext saveGraphicsState];
+  NS_DURING
+    [(id <DockExtra>)extra drawInRect:cell];
+  NS_HANDLER
+    NSLog(@"Dock extra %@ failed to draw: %@", extra, localException);
+  NS_ENDHANDLER
+  [NSGraphicsContext restoreGraphicsState];
+}
 
 @end

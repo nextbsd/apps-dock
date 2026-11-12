@@ -490,7 +490,8 @@
 /*
  * Where separators go, as item indexes (a separator before the item, or
  * after the last one): around everything after the pinned apps, as
- * before, and between the running apps and the minimized windows.
+ * before, and between the running apps and the minimized windows. The
+ * status area's Dock extras always get one above them.
  */
 - (NSArray *) sectionBoundaryIndexes
 {
@@ -501,6 +502,10 @@
 
   if (_pinnedItemCount >= count)
     {
+      if ([_extras count] && _fillsColumn)
+	{
+	  [result addObject:[NSNumber numberWithUnsignedInteger:count]];
+	}
       return result;
     }
   for (i = _pinnedItemCount; i < count; i++)

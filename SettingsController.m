@@ -35,6 +35,8 @@
 
 - (void) dealloc
 {
+  DESTROY(_extraButtons);
+  DESTROY(_extraIdentifiers);
   DESTROY(_emptyRecyclerButton);
   DESTROY(_deleteApplicationButton);
   DESTROY(_moveApplicationDownButton);

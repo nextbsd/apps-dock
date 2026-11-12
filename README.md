@@ -44,6 +44,54 @@ apps-windowserver's README). It's built when pkg-config finds
   that takes drops, and the Recycler fixed at the bottom. When the column is
   full, tiles shrink. The placement setting is kept for X11.
 
+### Dock extras
+
+Dock extras are small status tools in the status area, like Window
+Maker's dockapps and macOS's menu extras. Each is a loadable bundle,
+`Name.dockextra`, that the Dock loads at start from `~/Library/DockExtras`,
+`/Local/Library/DockExtras` and `/System/Library/DockExtras` (the first
+bundle with a given `CFBundleIdentifier` wins). Extras run inside the
+Dock's process; a misbehaving one is removed by taking it out of the
+folder. The interface is in `DockExtra.h`:
+
+- The bundle's principal class conforms to `DockExtra`:
+  `-initWithDockHost:`, `-isAvailable` (NO: nothing to show, so no tile),
+  `-drawInRect:` (a square of the Dock's cell size), `-toolTip` and
+  `-menuForEvent:`; optionally `-dockExtraOpen:` (double-click),
+  `-scrollWheel:` and `-dockExtraWillUnload`.
+- The Dock is its `DockExtraHost`: the extra calls `-dockExtraNeedsDisplay:`
+  when its tile should be drawn again (from its own timer or
+  notification; the Dock never polls it) and
+  `-dockExtraAvailabilityDidChange:` when its hardware comes or goes.
+  `-dockExtra:panelFrameForSize:` places a panel beside the tile, toward
+  the middle of the screen, whichever edge the Dock is on.
+- `Info.plist`: `CFBundleIdentifier`, `CFBundleName` (shown in the
+  settings) and `DockExtraDefaultPosition` (a number: the order until the
+  user moves it).
+- `DockExtraDrawPlate()` draws the dark rounded plate the bundled extras
+  share.
+
+A click shows the extra's menu beside its tile (click to open, click to
+choose); an extra that opens something on a double-click gets its menu
+once no second click comes. The scroll wheel goes to the extra. Dragging
+an extra moves it within the status area; it can't be dragged out of it
+or onto the Recycler. The order is saved as `DockExtrasOrder`. Each extra
+can be hidden in **Settings → Extras** (`DockExtrasHidden`).
+
+The status area exists only where the Dock fills its screen edge (on
+WindowServer), so extras are loaded there only. It runs along the Dock,
+down a column or across a row; nothing in it assumes the right edge.
+
+For screenshots and testing, `defaults write DockWM DockExtrasTestData
+YES` makes extras whose hardware is missing show made-up data (marked
+"[test data]" in their tooltips). A dictionary instead of YES sets the
+values: `BatteryPercent`, `BatteryCharging`, `BatteryOnAC`, `WiFiSSID`,
+`WiFiRSSI`, `WiFiConnected`.
+
+The extras that ship with the Dock are built from `Extras/` and installed
+into `$(GNUSTEP_LIBRARY)/DockExtras` with it.
+
+
 ## Build
 
 ```sh

@@ -42,6 +42,9 @@ SettingsClampedWindowAlpha(CGFloat alpha)
 }
 
 @interface SettingsController (Private)
+- (void) addExtrasTabToTabView: (NSTabView *)tabView;
+- (void) extraShownChanged: (id)sender;
+- (void) updateExtraControls;
 - (id) initWithDelegate: (id<SettingsControllerDelegate>)delegate;
 - (void) dealloc;
 - (NSTextField *) valueLabelWithFrame: (NSRect)frame;

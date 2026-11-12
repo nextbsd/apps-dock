@@ -34,6 +34,13 @@
 @interface AppController (X11Delegate) <X11DockManagerDelegate>
 @end
 
+@interface AppController (Extras) <DockExtrasControllerDelegate>
+- (void) loadDockExtras;
+- (NSUInteger) dockExtraCount;
+- (NSArray *) dockExtrasDescriptions;
+- (void) setDockExtraHidden: (BOOL)hidden forIdentifier: (NSString *)identifier;
+@end
+
 @interface AppController (WindowServer) <WSDockManagerDelegate>
 - (BOOL) usesWindowServer;
 - (void) sortItemsIntoSections;

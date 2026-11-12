@@ -121,9 +121,9 @@
     {
       return cell;
     }
-  /* The top tile, every item and the Recycler; the status area and the
+  /* The top tile, every item, the Dock extras and the Recycler; the
    * flexible gap can be empty. */
-  count = [_items count] + 2;
+  count = [_items count] + [self dockExtraCount] + 2;
   available = NSHeight([[NSScreen mainScreen] frame]) - 2.0 * [self activeDockPad];
   if (count * cell + (count - 1) * gap > available)
     {

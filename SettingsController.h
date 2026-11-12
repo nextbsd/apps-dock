@@ -131,6 +131,12 @@ didChangeItemWigglesOnAttentionRequest: (BOOL)wiggles
 - (void) settingsController: (SettingsController *)controller
        didDeleteItemAtIndex: (NSUInteger)index;
 - (void) settingsControllerDidEmptyRecycler: (SettingsController *)controller;
+/* The Dock extras, in order, as dictionaries with identifier, name,
+ * hidden and available (NSNumbers); empty where there are none (X11). */
+- (NSArray *) settingsControllerDockExtras: (SettingsController *)controller;
+- (void) settingsController: (SettingsController *)controller
+       didChangeExtraHidden: (BOOL)hidden
+	      forIdentifier: (NSString *)identifier;
 @end
 
 @interface SettingsController : NSObject <NSWindowDelegate>
@@ -180,6 +186,9 @@ didChangeItemWigglesOnAttentionRequest: (BOOL)wiggles
   NSButton *_moveApplicationUpButton;
   NSButton *_moveApplicationDownButton;
   NSButton *_deleteApplicationButton;
+  /* The Extras tab: a Show switch per Dock extra. */
+  NSMutableArray *_extraButtons;
+  NSMutableArray *_extraIdentifiers;
 }
 
 - (id) initWithDelegate: (id<SettingsControllerDelegate>)delegate;

@@ -3,3 +3,4 @@ obj
 *.o
 .DS_Store
 *.out
+*.dockextra

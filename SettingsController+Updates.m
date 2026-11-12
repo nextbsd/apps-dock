@@ -59,8 +59,40 @@
 }
 
 
+- (void) updateExtraControls
+{
+  NSArray *extras = [_delegate settingsControllerDockExtras:self];
+  NSUInteger i, j;
+
+  for (i = 0; i < [_extraButtons count]; i++)
+    {
+      NSButton *button = [_extraButtons objectAtIndex:i];
+      NSString *identifier = [_extraIdentifiers objectAtIndex:i];
+
+      for (j = 0; j < [extras count]; j++)
+	{
+	  NSDictionary *extra = [extras objectAtIndex:j];
+
+	  if (![[extra objectForKey:@"identifier"] isEqual:identifier])
+	    {
+	      continue;
+	    }
+	  [button setState:[[extra objectForKey:@"hidden"] boolValue]
+		  ? NSOffState : NSOnState];
+	  [button setTitle:
+		    (![[extra objectForKey:@"hidden"] boolValue] &&
+		     ![[extra objectForKey:@"available"] boolValue])
+		  ? [NSString stringWithFormat:@"%@ (nothing to show here)",
+			      [extra objectForKey:@"name"]]
+		  : [extra objectForKey:@"name"]];
+	}
+    }
+}
+
+
 - (void) updateControls
 {
+  [self updateExtraControls];
   NSColor *color;
   DockItem *selectedItem = nil;
   NSUInteger selectedIndex = NSNotFound;
