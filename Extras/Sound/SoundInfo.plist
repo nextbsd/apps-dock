@@ -1,0 +1,5 @@
+{
+  CFBundleIdentifier = "org.nextbsd.dockextra.sound";
+  CFBundleName = "Sound";
+  DockExtraDefaultPosition = 30;
+}
