@@ -26,6 +26,44 @@
   return [_preferences savedDockPlacement];
 }
 
+/*
+ * Workspace Preferences changed a desktop setting. For the Dock's
+ * position (NBDockPosition), move to the new edge at once, as the
+ * Dock's own Settings window does. On WindowServer the notification
+ * carries the effective position (the user's or the theme's); under
+ * X11 the Dock follows the DockPlacement Workspace wrote beside it.
+ */
+- (void) desktopSettingsDidChange: (NSNotification *)notification
+{
+  NSDictionary *info = [notification userInfo];
+  DockPlacement placement;
+
+  if (![[info objectForKey:@"key"] isEqual:DockPositionDefaultsKey])
+    {
+      return;
+    }
+  [[NSUserDefaults standardUserDefaults] synchronize];
+  if ([WSDockManager isWindowServerSession])
+    {
+      if (![DockPreferences placement:&placement
+		      forDockPosition:[info objectForKey:@"value"]])
+	{
+	  placement = [_preferences savedWindowServerDockPlacement];
+	}
+    }
+  else
+    {
+      placement = [self savedDockPlacement];
+    }
+  if (placement == _dockPlacement)
+    {
+      return;
+    }
+  _dockPlacement = placement;
+  [self applyDockPlacement];
+  [_settingsController updateControls];
+}
+
 - (NSColor *) savedBackgroundColor
 {
   return [_preferences savedBackgroundColor];

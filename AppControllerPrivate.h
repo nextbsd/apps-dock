@@ -60,6 +60,7 @@
 
 @interface AppController (Private)
 - (DockPlacement) savedDockPlacement;
+- (void) desktopSettingsDidChange: (NSNotification *)notification;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor;
 - (CGFloat) savedWindowAlpha;

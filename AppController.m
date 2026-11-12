@@ -36,7 +36,7 @@
 			      initWithScanner:_applicationScanner];
   _launchedApplicationPaths = [NSMutableSet new];
   /* On WindowServer the Dock fills the screen edge it's on: left,
-   * right (the default), top or bottom. */
+   * right (the default), top or bottom, from NBDockPosition. */
   _dockPlacement = [WSDockManager isWindowServerSession]
     ? [_preferences savedWindowServerDockPlacement]
     : [self savedDockPlacement];
@@ -125,6 +125,13 @@
 	}
     }
 
+  /* Workspace Preferences -> Desktop moves the Dock (NBDockPosition). */
+  [[NSDistributedNotificationCenter defaultCenter]
+    addObserver:self
+       selector:@selector(desktopSettingsDidChange:)
+	   name:DockDesktopSettingsChangedNotification
+	 object:nil];
+
   [self performSelector:@selector(performInitialApplicationScans)
 	     withObject:nil
 	     afterDelay:0.5];
@@ -132,6 +139,7 @@
 
 - (void) dealloc
 {
+  [[NSDistributedNotificationCenter defaultCenter] removeObserver:self];
   [_x11EventTimer invalidate];
   [_scanTimer invalidate];
   [_processScanTimer invalidate];

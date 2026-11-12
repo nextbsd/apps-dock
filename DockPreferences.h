@@ -13,6 +13,14 @@
 #import "DockView.h"
 #import "X11DockManager.h"
 
+/* The desktop setting for the Dock's edge, and the distributed
+ * notification Workspace Preferences posts when it changes (the
+ * userInfo's "key" and its effective "value"); see nextbsd-theme's
+ * NBDesktopSettings.h. */
+#define DockPositionDefaultsKey @"NBDockPosition"
+#define DockDesktopSettingsChangedNotification \
+  @"org.nextbsd.DesktopSettingsChanged"
+
 enum
 {
   DockCellSizeModeCurrent = 0,
@@ -29,12 +37,19 @@ enum
 + (BOOL) placementIsHorizontal: (DockPlacement)placement;
 + (DockEdge) edgeForPlacement: (DockPlacement)placement;
 + (DockPlacement) placementForEdge: (DockEdge)edge;
+/* An NBDockPosition value (right, left, top, bottom) as a placement:
+ * NO when it isn't one of them. */
++ (BOOL) placement: (DockPlacement *)placement forDockPosition: (id)position;
 + (NSColor *) calibratedBackgroundColor: (NSColor *)color;
 
 - (DockPlacement) savedDockPlacement;
-/* On WindowServer: one of the four edge placements, right by default. */
+/* On WindowServer: one of the four edge placements, from the desktop
+ * setting NBDockPosition (see nextbsd-theme's NBDesktopSettings.h). */
 - (DockPlacement) savedWindowServerDockPlacement;
 - (void) saveDockPlacement: (DockPlacement)placement;
+/* The user's NBDockPosition, in NSGlobalDomain, for the placement's
+ * edge, as Workspace Preferences writes it; then tells other apps. */
+- (void) saveDockPosition: (DockPlacement)placement;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor: (NSColor *)color;
 - (CGFloat) savedWindowAlpha;

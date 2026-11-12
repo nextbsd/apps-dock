@@ -45,14 +45,22 @@ apps-windowserver's README). It's built when pkg-config finds
   turned across a row), the status area for Dock extras, a flexible gap
   that takes drops, and the Recycler last, at the bottom of a column or
   the right end of a row. When the column or row is full, tiles shrink.
-- **Placement:** `DockPlacement` picks the edge: the left placements (0,
-  1) are the left edge, the right ones (2, 3) the right edge, Top Center
-  (4) the top edge and Bottom Center (5) the bottom edge. The edge's name
-  works too. With no `DockPlacement` the Dock is on the right. Change it
-  in **Settings → Dock → Placement** (Left, Right, Top, Bottom), which
-  moves the Dock at once, or with `defaults write DockWM DockPlacement
-  top` (or `left`, `right`, `bottom`) and a restart of the Dock. Workspace
-  Preferences will offer the setting later (nextbsd/apps-workspace#21).
+- **Placement:** the desktop setting `NBDockPosition` (`right`, `left`,
+  `top` or `bottom`) picks the edge, looked up as nextbsd-theme's
+  `NBDesktopSettings.h` does: the user's choice (in `NSGlobalDomain`),
+  then the active theme's `Info.plist`, then the right edge. Change it in
+  **Workspace Preferences → Desktop → Dock position** (nextbsd/apps-workspace#54),
+  including "Use theme default", or in the Dock's own **Settings → Dock →
+  Placement** (Left, Right, Top, Bottom), which saves it as the user's
+  choice; either moves the Dock at once. The Dock listens for the
+  distributed notification `org.nextbsd.DesktopSettingsChanged` (its
+  userInfo's `key` and effective `value`), which Workspace posts and the
+  Dock's Settings window posts too. `defaults write NSGlobalDomain
+  NBDockPosition top` and a restart of the Dock work as well.
+  `DockPlacement` stays the X11 (Gershwin) setting: there the left and
+  right placements (0 to 3) are top or centred, Top Center (4) and Bottom
+  Center (5) the rest, and the Dock follows the `DockPlacement` Workspace
+  writes beside `NBDockPosition` live too.
   On every edge, menus and Dock extras' panels open beside their tile
   toward the middle of the screen, tooltips point back at the tile, and
   icons bounce away from the edge, into the screen.
