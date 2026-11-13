@@ -177,6 +177,15 @@ static NSSet *knownWindowProcesses = nil;
   return tile;
 }
 
+/* The screen changed size: the Dock fills its edge of the new one. */
+- (void) screenParametersDidChange: (NSNotification *)notification
+{
+  if (_window != nil)
+    {
+      [self applyDockPlacement];
+    }
+}
+
 /* ---- WSDockManagerDelegate ---- */
 
 /* A Mac menu bar came, went or changed height: stay below it. */

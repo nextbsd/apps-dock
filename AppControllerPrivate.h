@@ -195,6 +195,7 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (void) showSettingsPanel: (id)sender;
 - (void) showSettingsForDockItem: (DockItem *)item;
 - (void) applyDockPlacement;
+- (void) screenParametersDidChange: (NSNotification *)notification;
 - (void) reportDockEdge;
 - (void) updateDockBackground;
 - (void) startLaunchWiggleForItem: (DockItem *)item;
