@@ -24,6 +24,7 @@
  */
 
 #import "AppControllerPrivate.h"
+#import "DockViewPrivate.h"
 
 /* Processes that had windows at the last window list, to notice new
  * apps without waiting for the next process scan. */
@@ -177,12 +178,31 @@ static NSSet *knownWindowProcesses = nil;
   return tile;
 }
 
-/* The screen changed size: the Dock fills its edge of the new one. */
+/* The screen changed size: the Dock fills its edge of the new one.
+ * libs-gui moves every window for the change too (keeping its distance
+ * from the top) once this notification is out, the icon, extra and
+ * Recycler windows included, so place everything again after that. */
 - (void) screenParametersDidChange: (NSNotification *)notification
 {
   if (_window != nil)
     {
       [self applyDockPlacement];
+      [NSObject cancelPreviousPerformRequestsWithTarget:self
+					      selector:@selector(placeAfterScreenChange)
+						object:nil];
+      [self performSelector:@selector(placeAfterScreenChange)
+		 withObject:nil
+		 afterDelay:0.25];
+    }
+}
+
+- (void) placeAfterScreenChange
+{
+  if (_window != nil)
+    {
+      [self applyDockPlacement];
+      [_dockView syncIconWindows];
+      [_dockView updateIconWindowPositions];
     }
 }
 
