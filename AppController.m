@@ -132,6 +132,14 @@
 	   name:DockDesktopSettingsChangedNotification
 	 object:nil];
 
+  /* The screen changed size (another "looks like" size in Displays,
+   * a new display mode): fill the new screen edge again. */
+  [[NSNotificationCenter defaultCenter]
+    addObserver:self
+       selector:@selector(screenParametersDidChange:)
+	   name:NSApplicationDidChangeScreenParametersNotification
+	 object:nil];
+
   /* Other apps keep apps in the Dock by asking it (Workspace's File >
    * Add to Dock); the Dock owns its list. */
   [[NSDistributedNotificationCenter defaultCenter]
@@ -148,6 +156,7 @@
 - (void) dealloc
 {
   [[NSDistributedNotificationCenter defaultCenter] removeObserver:self];
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
   [_x11EventTimer invalidate];
   [_scanTimer invalidate];
   [_processScanTimer invalidate];
