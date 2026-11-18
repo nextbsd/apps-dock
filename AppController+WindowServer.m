@@ -178,7 +178,8 @@ static NSSet *knownWindowProcesses = nil;
   return tile;
 }
 
-/* The screen changed size: the Dock fills its edge of the new one.
+/* The screen changed size, or displays came, went or moved, or another
+ * became the main one: the Dock fills its edge of the main display.
  * libs-gui moves every window for the change too (keeping its distance
  * from the top) once this notification is out, the icon, extra and
  * Recycler windows included, so place everything again after that. */

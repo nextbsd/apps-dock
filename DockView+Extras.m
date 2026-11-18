@@ -149,9 +149,9 @@
   CGFloat gap = 8.0;
   CGFloat dx, dy;
 
-  if (!screen)
+  if (!screen && [[NSScreen screens] count] > 0)
     {
-      screen = [NSScreen mainScreen];
+      screen = [[NSScreen screens] objectAtIndex:0];	/* the main display */
     }
   visible = screen ? [screen frame] : NSMakeRect(0, 0, 1024, 768);
   if (NSIsEmptyRect(tile))

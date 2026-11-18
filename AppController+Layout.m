@@ -22,8 +22,26 @@
 @implementation AppController (Layout)
 
 /*
- * The Dock's frame on WindowServer: the whole of one screen edge,
- * `thickness` deep.
+ * The Dock's screen: the main display, the first of +[NSScreen screens]
+ * (NextBSD's several displays, nextbsd/libs-back#38), as macOS keeps
+ * the Dock on the display with the menu bar. +mainScreen is the key
+ * window's, which can be another display while the Dock's settings
+ * panel is open there. WindowServer keeps the Dock's strip off that
+ * display's usable area only.
+ */
+- (NSScreen *) dockScreen
+{
+  NSArray *screens = [NSScreen screens];
+
+  return [screens count] > 0 ? [screens objectAtIndex:0]
+			     : [NSScreen mainScreen];
+}
+
+/*
+ * The Dock's frame on WindowServer: the whole of one edge of the main
+ * display, `thickness` deep. With a display arranged beside that edge,
+ * it stays on the main display's own edge, not the desktop's outer one,
+ * as on macOS.
  *
  * In the Mac menu style (NBMenuStyle macmenubar, nextbsd/libs-back#3)
  * the active app's menu bar runs along the top of the screen, and
@@ -37,7 +55,7 @@
 - (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
 			      thickness: (CGFloat)thickness
 {
-  NSRect screen = [[NSScreen mainScreen] frame];
+  NSRect screen = [[self dockScreen] frame];
   CGFloat bar = 0;
 
   if ([_windowManager respondsToSelector:@selector(menuBarHeight)])
@@ -69,7 +87,7 @@
 
 - (NSRect) dockWindowFrameForPlacement: (DockPlacement)placement
 {
-  NSRect screenFrame = [[NSScreen mainScreen] frame];
+  NSRect screenFrame = [[self dockScreen] frame];
   NSUInteger cellCount = [_items count] + 2;
   if ([_preferences savedAllowsGaps])
     for (DockItem *item in _items)

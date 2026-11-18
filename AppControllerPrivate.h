@@ -186,6 +186,8 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (void) updateRecyclerState;
 - (void) emptyRecyclerPath: (NSString *)path;
 - (void) emptyRecycler: (id)sender;
+/* The screen the Dock is on: the main display. */
+- (NSScreen *) dockScreen;
 - (NSRect) dockWindowFrameForPlacement: (DockPlacement)placement;
 - (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
 			      thickness: (CGFloat)thickness;
