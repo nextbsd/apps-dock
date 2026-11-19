@@ -26,6 +26,7 @@
  */
 
 #import "AppControllerPrivate.h"
+#import "DockExtrasSettings.h"
 
 @implementation AppController (Extras)
 
@@ -37,6 +38,30 @@
     }
   _extrasController = [[DockExtrasController alloc] initWithDelegate:self];
   [_extrasController loadExtras];
+
+  /* The settings apps' "Show ... in Dock" checkboxes ask the Dock to
+   * show or hide an extra (DockExtrasSettings.h). */
+  [[NSDistributedNotificationCenter defaultCenter]
+    addObserver:self
+       selector:@selector(setExtraHiddenRequested:)
+	   name:DockSetExtraHiddenNotification
+	 object:nil];
+}
+
+- (void) setExtraHiddenRequested: (NSNotification *)notification
+{
+  NSDictionary *info = [notification userInfo];
+  id identifier = [info objectForKey:@"identifier"];
+  id hidden = [info objectForKey:@"hidden"];
+
+  if (![identifier isKindOfClass:[NSString class]]
+      || ![hidden respondsToSelector:@selector(boolValue)])
+    {
+      NSLog(@"DockWM: ignoring %@ without identifier and hidden: %@",
+	    DockSetExtraHiddenNotification, info);
+      return;
+    }
+  [self setDockExtraHidden:[hidden boolValue] forIdentifier:identifier];
 }
 
 - (NSUInteger) dockExtraCount
@@ -53,6 +78,8 @@
 - (void) setDockExtraHidden: (BOOL)hidden forIdentifier: (NSString *)identifier
 {
   [_extrasController setHidden:hidden forExtraWithIdentifier:identifier];
+  /* The Dock's own Settings -> Extras follows a change made elsewhere. */
+  [_settingsController updateControls];
 }
 
 /* DockExtrasControllerDelegate */
@@ -86,6 +113,23 @@
 - (CGFloat) dockExtrasControllerCellSize: (DockExtrasController *)controller
 {
   return [_dockView cellSize].width;
+}
+
+- (void) dockExtrasController: (DockExtrasController *)controller
+	openApplicationAtPath: (NSString *)path
+{
+  DockItem *item = [DockItem applicationItemWithPath:path];
+
+  /* A running settings app comes forward, as from its Dock tile. */
+  if ([[self runningProcessIdentifiersForApplicationItem:item] count] > 0
+      && ([self reopenRunningApplicationAtPath:path]
+	  || [[NSWorkspace sharedWorkspace] launchApplication:path]))
+    {
+      return;
+    }
+  [self rememberLaunchedApplicationPath:path];
+  [self launchApplicationAtPath:path];
+  [_windowManager drainTransientIconEvents];
 }
 
 /* DockView: the user dragged an extra to a new place. */
