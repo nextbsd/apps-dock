@@ -19,44 +19,55 @@
 
 /*
  * The sound Dock extra: a speaker showing the volume and mute of the
- * default output, from the kernel's OSS mixer (/dev/mixer, which follows
- * the hw.snd.default_unit sysctl).
+ * output the system plays to: a kernel device (pcmN, through its mixer)
+ * or a Bluetooth headset (through bluetoothd and its virtual_oss), the
+ * way Sound.app (nextbsd/apps-settings) reads them, with the same code
+ * (SNAudio.c, copied from it).
  *
  * A click opens a small panel with a volume slider, Mute and the output
- * device; the right-click menu has Mute, volume steps and the outputs.
- * Scrolling over the tile changes the volume.
+ * device; the right-click menu has Mute, volume steps, the outputs and
+ * Open Sound Settings.... Scrolling over the tile changes the volume. A
+ * headset's volume is its own (AVRCP absolute volume), as on macOS.
  *
- * NextBSD has no devd and the mixer posts no change notification, so the
- * extra reads the mixer every 1.5 seconds (two ioctls on an open
- * descriptor) to follow changes from mixer(8) or other apps. With no
- * sound device it has no tile, and looks for one every 10 seconds.
+ * The extra shows whenever there's an output, a headset included, as on
+ * a laptop whose only sound is Bluetooth. bluetoothd's notifications
+ * bring headsets at once; OSS posts nothing, so the volume is read
+ * every 1.5 seconds, and with no output the devices are looked for
+ * every 10 seconds. A headset's mixer that stops answering (the headset
+ * went away) is never waited on: SNAudio gives up on it in 400 ms.
  */
 
 #import <AppKit/AppKit.h>
 #import <GNUstepBase/GNUstep.h>
 #import "DockExtra.h"
+#import "SNAudio.h"
 
 #include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/soundcard.h>
 #include <sys/sysctl.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <string.h>
 #include <unistd.h>
 
 #define DockSoundPollInterval 1.5
 #define DockSoundSearchInterval 10.0
+#define DockSoundDevicesEvery 4		/* polls between device reads */
 #define DockSoundStep 5
 
 @interface DockSoundExtra : NSObject <DockExtra>
 {
   id <DockExtraHost> _host;
-  int _mixer;
-  int _unit;
-  int _device;
+  SNAudio *_audio;
+  SNAudioDevice _devices[SNAudioMaxDevices];
+  int _count;
+  int _output;			/* index into _devices, or -1 */
   int _volume;
   BOOL _muted;
+  BOOL _hasVolume;		/* the output's volume can be read */
+  unsigned _polls;
+  int _pipe[2];
+  NSFileHandle *_handle;
   NSTimer *_timer;
   NSPanel *_panel;
   NSSlider *_slider;
@@ -64,75 +75,24 @@
   NSPopUpButton *_outputPopup;
 }
 - (void) update: (NSTimer *)timer;
+- (void) reloadDevices;
 - (void) setMuted: (BOOL)muted;
 - (void) fillOutputPopup;
 @end
 
-static int
-DockSoundDefaultUnit(void)
+static NSArray *
+DockSoundRunLoopModes(void)
 {
-  int unit = -1;
-  size_t length = sizeof(unit);
-
-  if (sysctlbyname("hw.snd.default_unit", &unit, &length, NULL, 0) != 0)
-    {
-      return -1;
-    }
-  return unit;
+  return [NSArray arrayWithObjects:NSDefaultRunLoopMode,
+		  NSEventTrackingRunLoopMode, NSModalPanelRunLoopMode, nil];
 }
 
-/* The playback devices, from /dev/sndstat: dictionaries with unit
- * (NSNumber) and name. */
-static NSArray *
-DockSoundOutputs(void)
+static NSString *
+DockSoundName(const SNAudioDevice *device)
 {
-  NSMutableArray *outputs = [NSMutableArray array];
-  NSMutableData *data = [NSMutableData data];
-  NSString *status;
-  NSArray *lines;
-  NSUInteger i;
-  char buffer[1024];
-  ssize_t length;
-  int fd;
+  NSString *name = [NSString stringWithUTF8String:device->name];
 
-  /* A device: its size is 0, so read it to the end by hand. */
-  fd = open("/dev/sndstat", O_RDONLY | O_CLOEXEC);
-  if (fd < 0)
-    {
-      return outputs;
-    }
-  while ((length = read(fd, buffer, sizeof(buffer))) > 0)
-    {
-      [data appendBytes:buffer length:(NSUInteger)length];
-    }
-  close(fd);
-  status = AUTORELEASE([[NSString alloc] initWithData:data
-					     encoding:NSUTF8StringEncoding]);
-  lines = [status componentsSeparatedByString:@"\n"];
-
-  for (i = 0; i < [lines count]; i++)
-    {
-      NSString *line = [lines objectAtIndex:i];
-      NSRange open = [line rangeOfString:@"<"];
-      NSRange close = [line rangeOfString:@">"];
-      int unit;
-
-      if (![line hasPrefix:@"pcm"] || open.location == NSNotFound ||
-	  close.location == NSNotFound || close.location < open.location ||
-	  [line rangeOfString:@"play"].location == NSNotFound ||
-	  sscanf([line UTF8String], "pcm%d:", &unit) != 1)
-	{
-	  continue;
-	}
-      [outputs addObject:
-		 [NSDictionary dictionaryWithObjectsAndKeys:
-				 [NSNumber numberWithInt:unit], @"unit",
-			       [line substringWithRange:
-				       NSMakeRange(open.location + 1,
-						   close.location - open.location - 1)],
-			       @"name", nil]];
-    }
-  return outputs;
+  return name ? name : @"";
 }
 
 @implementation DockSoundExtra
@@ -142,9 +102,38 @@ DockSoundOutputs(void)
   self = [super init];
   if (self)
     {
+      NSUInteger i;
+
       _host = host;
-      _mixer = -1;
-      _unit = -1;
+      _output = -1;
+      _pipe[0] = _pipe[1] = -1;
+      if (pipe(_pipe) == 0)
+	{
+	  for (i = 0; i < 2; i++)
+	    {
+	      (void)fcntl(_pipe[i], F_SETFL,
+			  fcntl(_pipe[i], F_GETFL) | O_NONBLOCK);
+	      (void)fcntl(_pipe[i], F_SETFD, FD_CLOEXEC);
+	    }
+	  _handle = [[NSFileHandle alloc] initWithFileDescriptor:_pipe[0]
+						  closeOnDealloc:NO];
+	  [[NSNotificationCenter defaultCenter]
+	    addObserver:self
+	       selector:@selector(bluetoothChanged:)
+		   name:NSFileHandleDataAvailableNotification
+		 object:_handle];
+	  [_handle waitForDataInBackgroundAndNotifyForModes:
+		     DockSoundRunLoopModes()];
+	}
+      else
+	{
+	  NSLog(@"Sound extra: no pipe for notifications: %s",
+		strerror(errno));
+	}
+      /* bluetoothd's audio and device notifications write a byte to
+       * the pipe; without one the regular looks still run. */
+      _audio = SNAudioOpen(_pipe[1]);
+      [self reloadDevices];
       [self update:nil];
     }
   return self;
@@ -152,6 +141,7 @@ DockSoundOutputs(void)
 
 - (void) dockExtraWillUnload
 {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
   [_timer invalidate];
   DESTROY(_timer);
   [_panel close];
@@ -159,11 +149,19 @@ DockSoundOutputs(void)
   DESTROY(_slider);
   DESTROY(_muteButton);
   DESTROY(_outputPopup);
-  if (_mixer >= 0)
+  if (_audio)
     {
-      close(_mixer);
-      _mixer = -1;
+      /* Waits out a notification being handled, so the pipe can go. */
+      SNAudioClose(_audio);
+      _audio = NULL;
     }
+  [_handle closeFile];
+  DESTROY(_handle);
+  if (_pipe[1] >= 0)
+    {
+      close(_pipe[1]);
+    }
+  _pipe[0] = _pipe[1] = -1;
   _host = nil;
 }
 
@@ -173,9 +171,39 @@ DockSoundOutputs(void)
   DEALLOC;
 }
 
+- (SNAudioDevice *) output
+{
+  return _output >= 0 && _output < _count ? &_devices[_output] : NULL;
+}
+
+/* ---- reading the devices ---- */
+
+- (void) bluetoothChanged: (NSNotification *)notification
+{
+  char buffer[256];
+
+  while (_pipe[0] >= 0 && read(_pipe[0], buffer, sizeof(buffer)) > 0)
+    {
+    }
+  [self reloadDevices];
+  [self update:nil];
+  [_handle waitForDataInBackgroundAndNotifyForModes:
+	     DockSoundRunLoopModes()];
+}
+
+- (void) reloadDevices
+{
+  if (_audio == NULL)
+    {
+      return;
+    }
+  _count = SNAudioCopyDevices(_audio, _devices, SNAudioMaxDevices);
+  _output = SNAudioDefaultOutput(_devices, _count);
+}
+
 - (void) scheduleUpdate
 {
-  NSTimeInterval interval = _mixer >= 0 ? DockSoundPollInterval
+  NSTimeInterval interval = [self isAvailable] ? DockSoundPollInterval
     : DockSoundSearchInterval;
 
   if (_timer && [_timer timeInterval] == interval)
@@ -195,104 +223,79 @@ DockSoundOutputs(void)
   [[NSRunLoop currentRunLoop] addTimer:_timer forMode:NSModalPanelRunLoopMode];
 }
 
-/* Open /dev/mixer, which is the default unit's mixer, and pick its
- * master control (vol, or pcm where there is none). */
-- (BOOL) openMixer
-{
-  int mask = 0;
-
-  if (_mixer >= 0)
-    {
-      close(_mixer);
-    }
-  _mixer = open("/dev/mixer", O_RDWR | O_CLOEXEC);
-  if (_mixer < 0)
-    {
-      return NO;
-    }
-  if (ioctl(_mixer, SOUND_MIXER_READ_DEVMASK, &mask) != 0 ||
-      !(mask & (SOUND_MASK_VOLUME | SOUND_MASK_PCM)))
-    {
-      close(_mixer);
-      _mixer = -1;
-      return NO;
-    }
-  _device = (mask & SOUND_MASK_VOLUME) ? SOUND_MIXER_VOLUME : SOUND_MIXER_PCM;
-  _unit = DockSoundDefaultUnit();
-  return YES;
-}
-
 - (void) updateControls
 {
+  SNAudioDevice *output = [self output];
+
   if (!_panel)
     {
       return;
     }
   [_slider setIntValue:_volume];
+  [_slider setEnabled:_hasVolume && output && SNAudioOutputHasVolume(output)];
   [_muteButton setState:_muted ? NSOnState : NSOffState];
+  [_muteButton setEnabled:_hasVolume];
 }
 
 - (void) update: (NSTimer *)timer
 {
-  BOOL wasAvailable = _mixer >= 0;
-  int level = 0;
-  int mutes = 0;
-  int volume;
-  BOOL muted;
+  BOOL wasAvailable = [self isAvailable];
+  SNAudioDevice *output;
+  int volume = 0, muted = 0;
+  BOOL hasVolume;
 
-  if (_mixer >= 0 && DockSoundDefaultUnit() != _unit)
+  /* With no output, every look reads the devices; with one, every few
+   * (bluetoothd's notifications bring headsets at once anyway). */
+  if (timer != nil && (!wasAvailable || ++_polls % DockSoundDevicesEvery == 0))
     {
-      /* The default output changed: follow it. */
-      [self openMixer];
+      [self reloadDevices];
     }
-  else if (_mixer < 0)
+  output = [self output];
+  hasVolume = output != NULL
+    && SNAudioGetOutputVolume(_audio, output, &volume, &muted) == 0;
+  if (output != NULL && !hasVolume && errno != ETIMEDOUT && errno != EBUSY)
     {
-      [self openMixer];
-    }
-  if (_mixer >= 0 &&
-      ioctl(_mixer, MIXER_READ(_device), &level) != 0)
-    {
-      /* The device went away. */
-      close(_mixer);
-      _mixer = -1;
+      /* Gone, not just slow: look again now. */
+      [self reloadDevices];
+      output = [self output];
+      hasVolume = output != NULL
+	&& SNAudioGetOutputVolume(_audio, output, &volume, &muted) == 0;
     }
   [self scheduleUpdate];
-  if ((_mixer >= 0) != wasAvailable)
+  if ([self isAvailable] != wasAvailable)
     {
       [_host dockExtraAvailabilityDidChange:self];
     }
-  if (_mixer < 0)
+  if (!hasVolume)
     {
-      return;
+      volume = 0;
+      muted = 0;
     }
-  if (ioctl(_mixer, SOUND_MIXER_READ_MUTE, &mutes) != 0)
-    {
-      mutes = 0;
-    }
-  volume = ((level & 0x7f) + ((level >> 8) & 0x7f)) / 2;
-  muted = (mutes & (1 << _device)) != 0;
-  if (volume != _volume || muted != _muted)
+  if (volume != _volume || (muted != 0) != _muted || hasVolume != _hasVolume)
     {
       _volume = volume;
-      _muted = muted;
+      _muted = muted != 0;
+      _hasVolume = hasVolume;
       [self updateControls];
       [_host dockExtraNeedsDisplay:self];
     }
 }
 
+/* ---- changing them ---- */
+
 - (void) setVolume: (int)volume
 {
-  int level;
+  SNAudioDevice *output = [self output];
 
-  if (_mixer < 0)
+  if (output == NULL)
     {
       return;
     }
   volume = MAX(0, MIN(100, volume));
-  level = volume | (volume << 8);
-  if (ioctl(_mixer, MIXER_WRITE(_device), &level) != 0)
+  if (SNAudioSetOutputVolume(_audio, output, volume) != 0)
     {
-      NSLog(@"Sound extra: can't set the volume (%s)", strerror(errno));
+      NSLog(@"Sound extra: can't set the volume of %@ (%s)",
+	    DockSoundName(output), strerror(errno));
       return;
     }
   /* Changing the volume unmutes, as on macOS. */
@@ -305,14 +308,9 @@ DockSoundOutputs(void)
 
 - (void) setMuted: (BOOL)muted
 {
-  int mutes = 0;
+  SNAudioDevice *output = [self output];
 
-  if (_mixer < 0 || ioctl(_mixer, SOUND_MIXER_READ_MUTE, &mutes) != 0)
-    {
-      return;
-    }
-  mutes = muted ? (mutes | (1 << _device)) : (mutes & ~(1 << _device));
-  if (ioctl(_mixer, SOUND_MIXER_WRITE_MUTE, &mutes) != 0)
+  if (output == NULL || SNAudioSetOutputMuted(_audio, output, muted) != 0)
     {
       NSLog(@"Sound extra: can't set mute (%s)", strerror(errno));
       return;
@@ -324,7 +322,16 @@ DockSoundOutputs(void)
 
 - (BOOL) isAvailable
 {
-  return _mixer >= 0;
+  int i;
+
+  for (i = 0; i < _count; i++)
+    {
+      if (_devices[i].play)
+	{
+	  return YES;
+	}
+    }
+  return NO;
 }
 
 /* A speaker, with up to three waves for the volume, or a cross when
@@ -392,12 +399,28 @@ DockSoundOutputs(void)
 
 - (NSString *) toolTip
 {
-  if (_mixer < 0)
+  SNAudioDevice *output = [self output];
+  NSString *volume;
+
+  if (output == NULL)
     {
-      return @"No sound device";
+      return @"No sound output";
     }
-  return _muted ? [NSString stringWithFormat:@"Volume: muted (%d%%)", _volume]
-    : [NSString stringWithFormat:@"Volume: %d%%", _volume];
+  if (!_hasVolume)
+    {
+      return [NSString stringWithFormat:@"%@: not answering",
+		       DockSoundName(output)];
+    }
+  volume = _muted ? [NSString stringWithFormat:@"muted (%d%%)", _volume]
+    : [NSString stringWithFormat:@"%d%%", _volume];
+  /* Say which output when it isn't obvious: a headset, or one of
+   * several. */
+  if (output->kind == SNAudioBluetooth || _count > 1)
+    {
+      return [NSString stringWithFormat:@"Volume: %@ (%@)", volume,
+		       DockSoundName(output)];
+    }
+  return [NSString stringWithFormat:@"Volume: %@", volume];
 }
 
 - (void) scrollWheel: (NSEvent *)event
@@ -435,45 +458,70 @@ DockSoundOutputs(void)
   [self setVolume:(int)[sender tag]];
 }
 
-/* Choosing the output sets hw.snd.default_unit, which needs root. */
+/* Only a kernel device can be chosen, by setting hw.snd.default_unit,
+ * which needs root for now; a headset takes the output by itself when it
+ * connects. The tag is the device's index. */
 - (void) chooseOutput: (id)sender
 {
-  int unit = (int)[([sender isKindOfClass:[NSPopUpButton class]]
-		    ? [sender selectedItem] : sender) tag];
+  int index = (int)[([sender isKindOfClass:[NSPopUpButton class]]
+		     ? [sender selectedItem] : sender) tag];
+  int unit;
 
-  if (unit == _unit)
+  if (index < 0 || index >= _count || index == _output
+      || _devices[index].kind != SNAudioKernel)
     {
       return;
     }
+  unit = _devices[index].unit;
   if (sysctlbyname("hw.snd.default_unit", NULL, NULL, &unit, sizeof(unit)) != 0)
     {
       NSLog(@"Sound extra: can't choose pcm%d as the output (%s)",
 	    unit, strerror(errno));
       NSBeep();
     }
+  [self reloadDevices];
   [self update:nil];
   [self fillOutputPopup];
 }
 
+/* Can the output be switched to device i from here? */
+- (BOOL) canChoose: (int)i
+{
+  SNAudioDevice *output = [self output];
+
+  return i == _output
+    || (geteuid() == 0 && _devices[i].kind == SNAudioKernel
+	&& (output == NULL || output->kind == SNAudioKernel));
+}
+
 - (void) fillOutputPopup
 {
-  NSArray *outputs = DockSoundOutputs();
-  NSUInteger i;
+  BOOL choosable = NO;
+  int i;
 
   [_outputPopup removeAllItems];
-  for (i = 0; i < [outputs count]; i++)
+  for (i = 0; i < _count; i++)
     {
-      NSDictionary *output = [outputs objectAtIndex:i];
-
-      [_outputPopup addItemWithTitle:[output objectForKey:@"name"]];
-      [[_outputPopup lastItem] setTag:[[output objectForKey:@"unit"] intValue]];
-      if ([[output objectForKey:@"unit"] intValue] == _unit)
+      if (!_devices[i].play)
+	{
+	  continue;
+	}
+      [_outputPopup addItemWithTitle:DockSoundName(&_devices[i])];
+      [[_outputPopup lastItem] setTag:i];
+      if (i == _output)
 	{
 	  [_outputPopup selectItem:[_outputPopup lastItem]];
 	}
+      if (i != _output && [self canChoose:i])
+	{
+	  choosable = YES;
+	}
     }
-  /* Only root can set hw.snd.default_unit for now. */
-  [_outputPopup setEnabled:[outputs count] > 1 && geteuid() == 0];
+  if ([_outputPopup numberOfItems] == 0)
+    {
+      [_outputPopup addItemWithTitle:@"No output"];
+    }
+  [_outputPopup setEnabled:choosable];
 }
 
 - (void) makePanel
@@ -521,8 +569,9 @@ DockSoundOutputs(void)
 					    pullsDown:NO];
   [_outputPopup setTarget:self];
   [_outputPopup setAction:@selector(chooseOutput:)];
-  [_outputPopup setToolTip:@"The output device (hw.snd.default_unit). "
-		@"Choosing another one needs administrator rights."];
+  [_outputPopup setToolTip:@"The output device. A Bluetooth headset takes "
+		@"the output when it connects; choosing a built-in one needs "
+		@"administrator rights."];
   [content addSubview:_outputPopup];
 }
 
@@ -550,9 +599,9 @@ DockSoundOutputs(void)
   NSMenu *menu;
   NSMenu *outputs;
   NSMenuItem *item;
-  NSArray *devices;
   NSUInteger i;
   int steps[] = { 0, 25, 50, 75, 100 };
+  int d, shown = 0;
 
   if ([event type] == NSLeftMouseDown)
     {
@@ -569,6 +618,7 @@ DockSoundOutputs(void)
 				keyEquivalent:@""];
   [item setTarget:self];
   [item setState:_muted ? NSOnState : NSOffState];
+  [item setEnabled:_hasVolume];
   [menu addItem:[NSMenuItem separatorItem]];
   for (i = 0; i < sizeof(steps) / sizeof(steps[0]); i++)
     {
@@ -579,28 +629,30 @@ DockSoundOutputs(void)
 				    keyEquivalent:@""];
       [item setTarget:self];
       [item setTag:steps[i]];
+      [item setEnabled:_hasVolume];
       [item setState:!_muted && abs(_volume - steps[i]) < 13
 	    ? NSOnState : NSOffState];
     }
-  devices = DockSoundOutputs();
-  if ([devices count])
+  outputs = AUTORELEASE([[NSMenu alloc] initWithTitle:@"Output"]);
+  [outputs setAutoenablesItems:NO];
+  for (d = 0; d < _count; d++)
+    {
+      if (!_devices[d].play)
+	{
+	  continue;
+	}
+      item = (NSMenuItem *)[outputs addItemWithTitle:DockSoundName(&_devices[d])
+					      action:@selector(chooseOutput:)
+				       keyEquivalent:@""];
+      [item setTarget:self];
+      [item setTag:d];
+      [item setState:d == _output ? NSOnState : NSOffState];
+      [item setEnabled:[self canChoose:d]];
+      shown++;
+    }
+  if (shown)
     {
       [menu addItem:[NSMenuItem separatorItem]];
-      outputs = AUTORELEASE([[NSMenu alloc] initWithTitle:@"Output"]);
-      [outputs setAutoenablesItems:NO];
-      for (i = 0; i < [devices count]; i++)
-	{
-	  NSDictionary *device = [devices objectAtIndex:i];
-	  int unit = [[device objectForKey:@"unit"] intValue];
-
-	  item = (NSMenuItem *)[outputs addItemWithTitle:[device objectForKey:@"name"]
-						  action:@selector(chooseOutput:)
-					   keyEquivalent:@""];
-	  [item setTarget:self];
-	  [item setTag:unit];
-	  [item setState:unit == _unit ? NSOnState : NSOffState];
-	  [item setEnabled:geteuid() == 0 || unit == _unit];
-	}
       item = (NSMenuItem *)[menu addItemWithTitle:@"Output" action:NULL
 				    keyEquivalent:@""];
       [menu setSubmenu:outputs forItem:item];

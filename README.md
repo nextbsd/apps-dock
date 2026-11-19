@@ -129,7 +129,7 @@ battery, a Wi-Fi radio, a Bluetooth controller, a sound device, two
 keyboard layouts or more); the clock is always there. Its menu gives the
 quick controls and ends with **Open X Settings…**, which opens the
 settings app with the rest (`Bluetooth.app`, `Energy.app`,
-`Keyboard.app`, `DateTime.app`; `Network.app` and `Sound.app` once they exist) from
+`Keyboard.app`, `DateTime.app`, `Sound.app`; `Network.app` once it exists) from
 `~/Applications`, `/System/Applications`, `/Local/Applications` or
 `/Network/Applications`, or brings it forward when it's running. While
 the app isn't installed the item isn't there. Extras add it with
@@ -211,16 +211,26 @@ Bundled extras:
   `IOPSNotificationCreateRunLoopSource` listens to, so nothing is polled.
   No battery (desktops, VMs): no tile.
 
-- **Sound** (`Sound.dockextra`): a speaker showing the default output's
-  volume and mute, from the OSS mixer (`/dev/mixer`, which follows
-  `hw.snd.default_unit`), read and set with the mixer ioctls. A click
-  opens a panel with a volume slider, Mute and the output device; the
-  right-click menu has Mute, volume steps and the outputs (from
-  `/dev/sndstat`). Scrolling over the tile changes the volume. NextBSD has
-  no devd and the mixer posts no notification, so the extra reads it
-  every 1.5 seconds to follow `mixer(8)` and other apps. No sound device:
-  no tile. Choosing another output sets `hw.snd.default_unit`, which
-  needs root for now.
+- **Sound** (`Sound.dockextra`): a speaker showing the volume and mute
+  of the output the system plays to: a kernel device (`pcmN`, through its
+  mixer) or a Bluetooth headset, which bluetoothd plays to through a
+  `virtual_oss` (`/dev/dsp.btN`). A headset is shown by its name, and its
+  volume is its own (AVRCP absolute volume, set through bluetoothd);
+  mute, and the volume of a headset without absolute volume (6 dB
+  steps), are its `virtual_oss`'s. The extra reads the devices with
+  `SNAudio.c`, copied unchanged from Sound.app (nextbsd/apps-settings
+  `Sound/`), and bluetoothd's MIG stubs from the Bluetooth extra's `mig/`.
+  A click opens a panel with a volume slider, Mute and the output; the
+  right-click menu has Mute, volume steps, the outputs and **Open Sound
+  Settings…**. Scrolling over the tile changes the volume. bluetoothd's
+  notifications bring a headset at once; OSS posts nothing, so the volume
+  is read every 1.5 seconds. With no output at all there's no tile, and
+  it looks again every 10 seconds. A headset takes the output when it
+  connects; choosing a kernel device sets `hw.snd.default_unit`, which
+  needs root for now. A headset's `virtual_oss` that has lost the headset
+  answers nothing, and anything opening its devices would wait with it,
+  so every call to one runs in a child process and is given up on after
+  400 ms: the Dock never waits on it.
 
 - **Date and clock** (`Clock.dockextra`): the time with the day and
   date, digital or analog, fitted to the cell. A click shows a month
