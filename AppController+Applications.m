@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -333,7 +333,7 @@
 }
 
 
-- (BOOL) applicationBundlePathIsDockWM: (NSString *)path
+- (BOOL) applicationBundlePathIsDock: (NSString *)path
 {
   NSString *candidateBundlePath = [DockItem applicationBundlePathForPath:path];
   NSString *bundlePath = [self normalizedPath:
@@ -351,7 +351,9 @@
       return YES;
     }
 
-  return [bundleName isEqualToString:@"dockwm.app"];
+  /* DockWM.app is its old name. */
+  return [bundleName isEqualToString:@"dock.app"]
+    || [bundleName isEqualToString:@"dockwm.app"];
 }
 
 /* Workspace is the dock's top tile, so it is never also an item and can't be
@@ -405,12 +407,12 @@
   return [path length] ? [[NSWorkspace sharedWorkspace] iconForFile:path] : nil;
 }
 
-/* Apps that never get an item of their own: DockWM and Workspace, which the
+/* Apps that never get an item of their own: Dock and Workspace, which the
  * dock shows itself, and the system UI in CoreServices, which it never
  * shows. */
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path
 {
-  return [self applicationBundlePathIsDockWM:path] ||
+  return [self applicationBundlePathIsDock:path] ||
     [self applicationBundlePathIsWorkspace:path] ||
     [self applicationBundlePathIsCoreService:path];
 }

@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -237,9 +237,9 @@
 }
 
 - (BOOL) settingsController: (SettingsController *)controller
-	       itemIsDockWM: (DockItem *)item
+	       itemIsDock: (DockItem *)item
 {
-  return [self applicationBundlePathIsDockWM:[item path]];
+  return [self applicationBundlePathIsDock:[item path]];
 }
 
 - (BOOL) settingsController: (SettingsController *)controller

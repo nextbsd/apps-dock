@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Joseph Maloney <pkgdemonteam@gmail.com>
  *
@@ -601,7 +601,7 @@
 						       forKey:@"hidden"]
 	deliverImmediately:YES];
   NS_HANDLER
-    NSLog(@"DockWM: can't post %@: %@", DockExtrasChangedNotification,
+    NSLog(@"Dock: can't post %@: %@", DockExtrasChangedNotification,
 	  [localException reason]);
   NS_ENDHANDLER
 }

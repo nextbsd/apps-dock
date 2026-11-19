@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -209,7 +209,7 @@
     }
   matchedApplication = item && [item kind] == DockItemApplication;
 
-  if (dockApp && [self applicationBundlePathIsDockWM:path])
+  if (dockApp && [self applicationBundlePathIsDock:path])
     {
       return;
     }

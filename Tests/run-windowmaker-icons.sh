@@ -26,7 +26,7 @@ for attempt in $(seq 1 50); do
   sleep 0.1
 done
 wmctrl -m >/dev/null
-./DockWM.app/DockWM >"$test_dir/dock.log" 2>&1 &
+./Dock.app/Dock >"$test_dir/dock.log" 2>&1 &
 dock_pid=$!
 for attempt in $(seq 1 50); do
   kill -0 "$dock_pid"

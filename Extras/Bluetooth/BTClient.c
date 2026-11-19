@@ -161,7 +161,7 @@ BTClientOpen (int wakeFD)
 
   /* State:/Bluetooth and everything under it. Without configd the app
      still works, on the notifications alone. */
-  c->store = SCDynamicStoreCreate (NULL, CFSTR ("DockWM Bluetooth"),
+  c->store = SCDynamicStoreCreate (NULL, CFSTR ("Dock Bluetooth"),
                                    BTStoreChanged, &context);
   if (c->store != NULL)
     {

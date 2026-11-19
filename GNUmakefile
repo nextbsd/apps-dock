@@ -1,8 +1,8 @@
 include $(GNUSTEP_MAKEFILES)/common.make
 
-APP_NAME = DockWM
+APP_NAME = Dock
 
-DockWM_OBJC_FILES = \
+Dock_OBJC_FILES = \
 main.m \
 AppController.m \
 AppController+Applications.m \
@@ -54,24 +54,24 @@ X11DockManager+Activation.m \
 X11DockManager.m \
 WSDockManager.m
 
-DockWM_APPLICATION_ICON = DockWM.tiff
+Dock_APPLICATION_ICON = Dock.tiff
 
-DockWM_RESOURCE_FILES = \
-Resources/DockWM.tiff \
+Dock_RESOURCE_FILES = \
+Resources/Dock.tiff \
 Resources/GNUstep.tiff \
 Resources/Recycler.GNUstep.xpm \
 Resources/gnustep_whale.png \
 Resources/GNUstep_circle.png
 
 ADDITIONAL_OBJCFLAGS += $(shell pkg-config --cflags x11 xext 2>/dev/null)
-DockWM_TOOL_LIBS += $(shell pkg-config --libs x11 xext 2>/dev/null)
+Dock_TOOL_LIBS += $(shell pkg-config --libs x11 xext 2>/dev/null)
 
 # NextBSD's WindowServer (WSDockManager), where its client library is
 # installed; elsewhere the Dock is built for X11 only.
 ifeq ($(shell pkg-config --exists WindowServerClient 2>/dev/null && echo yes),yes)
 ADDITIONAL_OBJCFLAGS += -DDOCK_HAVE_WINDOWSERVER \
 	$(shell pkg-config --cflags WindowServerClient)
-DockWM_TOOL_LIBS += $(shell pkg-config --libs WindowServerClient)
+Dock_TOOL_LIBS += $(shell pkg-config --libs WindowServerClient)
 endif
 
 # The Dock extras (Extras/), built and installed with the Dock. They
@@ -83,3 +83,9 @@ include $(GNUSTEP_MAKEFILES)/aggregate.make
 endif
 
 include $(GNUSTEP_MAKEFILES)/application.make
+
+# The Dock was DockWM.app: take it out of the domain the Dock goes into,
+# so that two Docks never start.
+after-install::
+	rm -rf "$(DESTDIR)$(GNUSTEP_APPS)/DockWM.app"
+

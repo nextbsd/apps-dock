@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -212,8 +212,8 @@
   [task setLaunchPath:path];
   [task setArguments:arguments];
   /*
-   * NSTask otherwise inherits DockWM's current directory.  That directory is
-   * an implementation detail of how DockWM itself was started and must not
+   * NSTask otherwise inherits the Dock's current directory.  That directory is
+   * an implementation detail of how the Dock itself was started and must not
    * leak into applications launched from the dock (especially terminals).
    */
   if ([homeDirectory length])

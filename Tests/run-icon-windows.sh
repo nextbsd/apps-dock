@@ -23,7 +23,7 @@ fi
 make
 build_dir=$(mktemp -d /tmp/dock-icon-windows.XXXXXX)
 trap 'rm -rf "$build_dir"' EXIT
-objects=$(find obj/DockWM.obj -name '*.o' ! -name main.m.o)
+objects=$(find obj/Dock.obj -name '*.o' ! -name main.m.o)
 clang $(gnustep-config --objc-flags) Tests/IconWindows.m $objects \
   -o "$build_dir/icon-windows" $(gnustep-config --gui-libs) -lX11 -lXext -lXtst
 xvfb-run -a "$build_dir/icon-windows"

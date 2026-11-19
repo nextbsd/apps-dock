@@ -5,7 +5,7 @@
 #import "RunningApplicationScanner.h"
 #include <stdlib.h>
 
-/* Run under an isolated X server; use volatile defaults, never DockWM's domain. */
+/* Run under an isolated X server; use volatile defaults, never the Dock's domain. */
 int main(void)
 {
   NSAutoreleasePool *pool = [NSAutoreleasePool new];

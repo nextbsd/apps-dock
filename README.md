@@ -1,7 +1,7 @@
-# DockWM
+# Dock
 
-DockWM is a small GNUstep/AppKit dock-style window manager shell inspired by
-WindowMaker.
+The Dock (`Dock.app`, formerly `DockWM.app`) is a small GNUstep/AppKit
+dock-style window manager shell inspired by WindowMaker.
 
 It supports two inputs:
 
@@ -12,14 +12,14 @@ It supports two inputs:
 
 ## NextBSD WindowServer
 
-DockWM also runs on NextBSD's WindowServer (the `nextbsd` GNUstep backend),
+The Dock also runs on NextBSD's WindowServer (the `nextbsd` GNUstep backend),
 where there is no X display. Running apps are found with `kern.proc` where
 `/proc` isn't mounted. The X11 dock host and dockapps are X11-only.
 
 What X11DockManager does under X11, `WSDockManager` does here, through
 WindowServer's Dock connection (`WS_CONNECT_DOCK`, see "The Dock" in
 apps-windowserver's README). It's built when pkg-config finds
-`WindowServerClient`; elsewhere DockWM is built for X11 alone.
+`WindowServerClient`; elsewhere the Dock is built for X11 alone.
 
 - **Window lists:** an app's menu starts with its windows, front to back,
   the key window checked and minimized ones marked with a diamond; choosing
@@ -58,7 +58,7 @@ apps-windowserver's README). It's built when pkg-config finds
   before, and switching the style moves between the two at once. Either
   way the strip the
   Dock reports to WindowServer is its thickness along the whole edge.
-  `defaults write DockWM DockAlignment start` and a restart of the Dock
+  `defaults write Dock DockAlignment start` and a restart of the Dock
   work too.
 - **Placement:** the desktop setting `NBDockPosition` (`right`, `left`,
   `top` or `bottom`) picks the edge, looked up as nextbsd-theme's
@@ -173,7 +173,7 @@ The settings apps' **Show X in Dock** checkboxes (nextbsd/apps-settings)
 turn extras on and off, live, the way macOS's "Show X in menu bar" does.
 The Dock owns the list (`DockExtrasSettings.h` has the names):
 
-- **Where:** the Dock's defaults domain `DockWM`, key `DockExtrasHidden`,
+- **Where:** the Dock's defaults domain `Dock`, key `DockExtrasHidden`,
   an array of the hidden extras' `CFBundleIdentifier`s. An extra that
   isn't in it is shown.
 - **Asking:** another app doesn't write the list while the Dock runs; it
@@ -194,7 +194,7 @@ The status area exists only where the Dock fills its screen edge (on
 WindowServer), so extras are loaded there only. It runs along the Dock,
 down a column or across a row; nothing in it assumes the right edge.
 
-For screenshots and testing, `defaults write DockWM DockExtrasTestData
+For screenshots and testing, `defaults write Dock DockExtrasTestData
 YES` makes extras whose hardware is missing show made-up data (marked
 "[test data]" in their tooltips). A dictionary instead of YES sets the
 values: `BatteryPercent`, `BatteryCharging`, `BatteryOnAC`, `WiFiSSID`,
@@ -279,7 +279,7 @@ Bundled extras:
   is the one `/var/db/zoneinfo` names, made GNUstep's default: GNUstep's
   own guess comes from ICU, which never looks again. Date &
   Time.app's Clock tab sets the same four keys and posts the distributed
-  notification `org.nextbsd.SettingsChanged` (userInfo `domain` `DockWM`,
+  notification `org.nextbsd.SettingsChanged` (userInfo `domain` `Dock`,
   `keys`); the extra reads them again and redraws, and posts the same
   when its own menu changes them. **Open Date & Time Settings…** opens
   Date & Time.app (`DateTime.app`).
@@ -293,8 +293,20 @@ make
 ## Run
 
 ```sh
-./DockWM.app/DockWM
+./Dock.app/Dock
 ```
+
+### From DockWM
+
+The app was `DockWM.app` (process `DockWM`). Installing `Dock.app` removes a
+`DockWM.app` from the same domain, so that two Docks never start, and the
+session starts `Dock.app` (nextbsd/apps-loginwindow). The Dock's defaults
+domain is its process name, `Dock`: the first time it runs, it takes the
+values of the old `DockWM` domain that the new one hasn't got and marks
+that with `DockMigratedFromDockWM`; the old domain is left as it was. Other
+apps that read or write the Dock's settings use the `Dock` domain
+(Workspace's Dock position, the settings apps' "Show … in Dock" and the
+clock's settings).
 
 The AppKit dock accepts filesystem drops. A companion X11 override-redirect host
 window is created next to it for dockapps and other small X11 clients.
@@ -356,7 +368,7 @@ style bits, regardless of window dimensions. Miniwindow unmapping respects the
 miniwindow preference. Window Maker application tiles are identified by the
 `_WINDOWMAKER_APP_ICON` property (type `WINDOW`, one owning client window ID),
 published by the companion gs-wmaker change. When that property is absent,
-DockWM falls back to a validated Window Maker noticeboard plus an anonymous
+The Dock falls back to a validated Window Maker noticeboard plus an anonymous
 override-redirect root window with the icon event mask and XDND support.
 Named clients, transient windows, and containers of ordinary windows are
 excluded from both fallback paths. If both attribute matches fail, exact
@@ -369,25 +381,25 @@ Dockapp discovery uses explicit `DockApp` class and
 Run `sh Tests/run-overlay-preservation.sh` to check preservation of unmarked
 overlay windows, including windows with XDND support and icon-like event masks.
 Run `sh Tests/run-windowmaker-icons.sh /path/to/gs-wmaker/src/wmaker` to verify
-that Window Maker publishes the marker and DockWM unmaps the resulting tile,
+that Window Maker publishes the marker and the Dock unmaps the resulting tile,
 then removes the marker and verifies the legacy fallback on the same tile.
 This test uses an isolated display and requires `xdotool`.
 
-Before launching an application, DockWM saves `GSSuppressAppIcon = YES` in that
+Before launching an application, the Dock saves `GSSuppressAppIcon = YES` in that
 application’s defaults domain, preserving its other preferences. This applies
 to app bundles, executables, and applications launched through desktop files;
-no suppression argument is added to the command line. DockWM also sets this
+no suppression argument is added to the command line. The Dock also sets this
 default for itself before creating its application object.
 
-At startup, DockWM writes `GSUseIconManager` to the GNUstep global defaults
+At startup, the Dock writes `GSUseIconManager` to the GNUstep global defaults
 domain. It defaults to enabled. Turn off **Settings → Behavior → Use icon
 manager for all applications** to disable it; the global choice is saved
 immediately and retained across restarts. Applications read this setting when
 starting, so restart running applications to pick up a change. Per-app choices are available in **Settings → Applications → Icon manager**:
 **Use global setting** (the default), **On**, or **Off**. An explicit app choice
-takes priority over the global switch and survives DockWM restarts. Choose
+takes priority over the global switch and survives Dock restarts. Choose
 **Use global setting** to remove an override. Other app preferences are preserved.
-DockWM also rejects incoming application icon-manager updates when disabled,
+The Dock also rejects incoming application icon-manager updates when disabled,
 including direct messages from apps that bypass GNUstep's preference check.
 This does not pause an embedded X11 dockapp's own drawing or disable process
 tracking. Restart applications after changing the setting to update their own
@@ -412,7 +424,7 @@ running application's tile) into the kept applications keeps it there:
 while the drag is over the kept applications they open an empty slot where it
 will go, right after the Workspace tile when nothing is kept yet. Dragging a
 kept tile to the Recycler or out of the Dock removes it the same way. The
-kept applications are saved as `DockApplications` in DockWM's defaults. Older
+kept applications are saved as `DockApplications` in the Dock's defaults. Older
 Docks saved a `GSDockKeepInDock` value in each application's defaults domain
 and hid running applications with it; the Dock removes that value when it
 next sees the application. This is separate from **Open At Login** and does
@@ -478,7 +490,7 @@ Window Maker, `wmctrl`, and `xdotool`.
 Run `sh Tests/run-recycler-drag.sh --application` to check that dragging an
 `Ink.app` test bundle across the icon windows pins it without crashing. Both
 drag tests drain an autorelease pool between events to exercise normal
-application object lifetimes. DockWM retains the shared drag pasteboard while
+application object lifetimes. The Dock retains the shared drag pasteboard while
 its dock view exists, preventing it from being destroyed as a drag crosses
 icon windows. No GNUstep GUI library changes are required.
 

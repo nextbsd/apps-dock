@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -147,7 +147,7 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (BOOL) activateRunningApplicationWithProcessIdentifiers: (NSArray *)processIdentifiers;
 - (BOOL) shouldApplyX11Icon: (NSImage *)icon toItem: (DockItem *)item;
 - (void) pruneApplicationIconUpdatesForExitedProcesses;
-- (BOOL) applicationBundlePathIsDockWM: (NSString *)path;
+- (BOOL) applicationBundlePathIsDock: (NSString *)path;
 - (BOOL) applicationBundlePathIsWorkspace: (NSString *)path;
 - (BOOL) applicationBundlePathIsCoreService: (NSString *)path;
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path;

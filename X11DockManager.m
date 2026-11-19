@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -166,7 +166,7 @@ static int X11DockManagerHandleError(Display *display, XErrorEvent *event)
 			      CopyFromParent, InputOutput, CopyFromParent,
 			      CWOverrideRedirect | CWBackPixel | CWEventMask,
 			      &attrs);
-  XStoreName(display, (Window)_hostWindow, "DockWM X11 Dock Host");
+  XStoreName(display, (Window)_hostWindow, "Dock X11 Host");
   XMapWindow(display, (Window)_hostWindow);
   XFlush(display);
   _display = display;
@@ -183,7 +183,7 @@ static int X11DockManagerHandleError(Display *display, XErrorEvent *event)
   [_iconConnection setRootObject:self];
   if (![_iconConnection registerName:@"GSIconManager"])
     {
-      NSLog(@"Unable to register GSIconManager; GNUstep app icon windows will not be handed to DockWM.");
+      NSLog(@"Unable to register GSIconManager; GNUstep app icon windows will not be handed to the Dock.");
       DESTROY(_iconConnection);
     }
 }
@@ -234,7 +234,7 @@ static int X11DockManagerHandleError(Display *display, XErrorEvent *event)
   XSync(display, False);
   if ([self x11ErrorOccurred])
     {
-      NSLog(@"Unable to mark DockWM window %lu as sticky.", xWindow);
+      NSLog(@"Unable to mark Dock window %lu as sticky.", xWindow);
     }
 }
 

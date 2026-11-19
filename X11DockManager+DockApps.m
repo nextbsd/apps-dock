@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -234,7 +234,7 @@
   if (children) XFree(children);
 
   /* Map the icon and its current ancestors, not a possibly obsolete WM frame.
-   * Walking the tree also recovers icons hidden by an earlier DockWM session. */
+   * Walking the tree also recovers icons hidden by an earlier Dock session. */
   if (restored && window != DefaultRootWindow(display))
     XMapWindow(display, window);
   return restored;

@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Joseph Maloney <pkgdemonteam@gmail.com>
  *
@@ -82,7 +82,7 @@
   if (![identifier isKindOfClass:[NSString class]]
       || ![hidden respondsToSelector:@selector(boolValue)])
     {
-      NSLog(@"DockWM: ignoring %@ without identifier and hidden: %@",
+      NSLog(@"Dock: ignoring %@ without identifier and hidden: %@",
 	    DockSetExtraHiddenNotification, info);
       return;
     }

@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -32,7 +32,7 @@
 #define GWRemoteFilenamesPboardType @"GWRemoteFilenamesPboardType"
 #define GWLSFolderPboardType @"GWLSFolderPboardType"
 #define GWDockIconPboardType @"DockIconPboardType"
-#define DockReorderPboardType @"DockWMReorderPboardType"
+#define DockReorderPboardType @"DockReorderPboardType"
 #define DockTopIconClickIndex (NSUIntegerMax - 1)
 #define DockRecyclerClickIndex (NSUIntegerMax - 2)
 #define DockHoverNone -1

@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -493,11 +493,15 @@ static Window WindowProperty(Display *display, Window window, Atom property)
   NSString *lowerName = [[path lastPathComponent] lowercaseString];
   NSArray *pathComponents = [[path lowercaseString] pathComponents];
 
+  /* The Dock itself, under its old name (DockWM) too. */
   if ([lowerTitle isEqualToString:@"gworkspace"] ||
+      [lowerTitle isEqualToString:@"dock"] ||
       [lowerTitle isEqualToString:@"dockwm"] ||
       [lowerName isEqualToString:@"gworkspace"] ||
+      [lowerName isEqualToString:@"dock"] ||
       [lowerName isEqualToString:@"dockwm"] ||
       [pathComponents containsObject:@"gworkspace.app"] ||
+      [pathComponents containsObject:@"dock.app"] ||
       [pathComponents containsObject:@"dockwm.app"])
     {
       return YES;

@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -204,7 +204,7 @@
 
       if (([item kind] == DockItemApplication ||
 	   [item kind] == DockItemX11Window) &&
-	  ![_delegate settingsController:self itemIsDockWM:item])
+	  ![_delegate settingsController:self itemIsDock:item])
 	{
 	  NSString *title = [item title];
 
