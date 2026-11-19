@@ -27,9 +27,9 @@
 # are covered headless by Tests/run-no-top-dock.sh here and by
 # apps-workspace's Tests/no-top-dock.sh.
 
-set -u
-
+# GNUstep.sh reads variables that may be unset: before set -u.
 . /System/Library/Makefiles/GNUstep.sh 2>/dev/null || true
+set -u
 WSCTL=${WSCTL:-/usr/libexec/WindowServer/wsctl}
 POSTDS=${POSTDS:-$HOME/src/postds/obj/postds}
 DOCK_APP=${DOCK_APP:-$HOME/Applications/Dock.app/Dock}
