@@ -60,6 +60,7 @@
 	{
 	  placement = [_preferences savedWindowServerDockPlacement];
 	}
+      placement = [self effectiveDockPlacement:placement];
     }
   else
     {
@@ -190,6 +191,33 @@
 {
   return NSInterfaceStyleForKey(@"NSMenuInterfaceStyle", nil)
     == NSMacintoshInterfaceStyle;
+}
+
+/* As on macOS, the Dock is never at the top in the Mac menu style: not
+ * above the menu bar, nor below it. The NeXT and in-window styles keep
+ * the top edge. Only WindowServer has the Mac menu style. */
+- (BOOL) dockCanBeAtTop
+{
+  return ![WSDockManager isWindowServerSession] || ![self dockIsMacMenuStyle];
+}
+
+/* A saved top is used as the bottom, macOS's default, while the Dock
+ * can't be at the top; the saved setting stays top, so the Dock goes
+ * back there in the NeXT style. */
+- (DockPlacement) effectiveDockPlacement: (DockPlacement)placement
+{
+  if ([DockPreferences edgeForPlacement:placement] == DockEdgeTop
+      && ![self dockCanBeAtTop])
+    {
+      return DockPlacementBottomCenter;
+    }
+  return placement;
+}
+
+- (DockPlacement) windowServerDockPlacement
+{
+  return [self effectiveDockPlacement:
+		 [_preferences savedWindowServerDockPlacement]];
 }
 
 /* The cells along the Dock: the top tile, every item (minimized

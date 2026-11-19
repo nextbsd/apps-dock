@@ -36,9 +36,10 @@
 			      initWithScanner:_applicationScanner];
   _launchedApplicationPaths = [NSMutableSet new];
   /* On WindowServer the Dock fills the screen edge it's on: left,
-   * right (the default), top or bottom, from NBDockPosition. */
+   * right (the default), top or bottom, from NBDockPosition; never the
+   * top in the Mac menu style. */
   _dockPlacement = [WSDockManager isWindowServerSession]
-    ? [_preferences savedWindowServerDockPlacement]
+    ? [self windowServerDockPlacement]
     : [self savedDockPlacement];
   _dockAlignment = [_preferences savedDockAlignment];
   _dockCellSizeMode = [self savedDockCellSizeMode];
