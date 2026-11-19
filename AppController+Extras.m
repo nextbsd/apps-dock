@@ -55,17 +55,22 @@
 /* The Mac menu style, on a backend that has status items. */
 - (BOOL) dockExtrasGoInMenuBar
 {
-  return NSInterfaceStyleForKey(@"NSMenuInterfaceStyle", nil)
-    == NSMacintoshInterfaceStyle
+  return [self dockIsMacMenuStyle]
     && [NSStatusBar systemStatusBar] != nil;
 }
 
 /* The menu style may have changed (Workspace Preferences): the extras
- * move to or from the menu bar. Asked once the backend has followed the
- * change, on the next pass of the run loop. */
+ * move to or from the menu bar, and the Dock is centred (Mac) or runs
+ * the length of its edge again (NeXT). Asked once the backend has
+ * followed the change, on the next pass of the run loop. */
 - (void) updateDockExtrasPlace
 {
   [_extrasController setShowsExtrasInMenuBar:[self dockExtrasGoInMenuBar]];
+  if ([_dockView sizesToContent] != [self dockSizesToContent])
+    {
+      [self applyDockPlacement];
+    }
+  [_settingsController updateControls];
 }
 
 - (void) setExtraHiddenRequested: (NSNotification *)notification

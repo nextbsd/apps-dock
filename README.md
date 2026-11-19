@@ -52,7 +52,11 @@ apps-windowserver's README). It's built when pkg-config finds
   so it grows and shrinks as apps launch and quit, extras come and go and
   a drop slot opens; a separator sets the extras and the Recycler off from
   the apps, and the flexible gap is just that. **Start of Edge** (`start`)
-  fills the whole edge from its start, as before. Either way the strip the
+  fills the whole edge from its start, as before. Centering is for the
+  Mac menu style, where the extras are in the menu bar: in the NeXT menu
+  style the Dock always fills its edge with the extras at its end, as
+  before, and switching the style moves between the two at once. Either
+  way the strip the
   Dock reports to WindowServer is its thickness along the whole edge.
   `defaults write DockWM DockAlignment start` and a restart of the Dock
   work too.

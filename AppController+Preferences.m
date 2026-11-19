@@ -176,10 +176,20 @@
     + ([self dockExtraCount] > 0 || [self dockSizesToContent] ? 1 : 0);
 }
 
+/* Centred only in the Mac menu style, where the extras have gone to the
+ * menu bar; in the NeXT style the Dock runs the length of its edge with
+ * the extras at its end, whatever DockAlignment says. */
 - (BOOL) dockSizesToContent
 {
   return [WSDockManager isWindowServerSession]
-    && _dockAlignment == DockAlignmentCenter;
+    && _dockAlignment == DockAlignmentCenter
+    && [self dockIsMacMenuStyle];
+}
+
+- (BOOL) dockIsMacMenuStyle
+{
+  return NSInterfaceStyleForKey(@"NSMenuInterfaceStyle", nil)
+    == NSMacintoshInterfaceStyle;
 }
 
 /* The cells along the Dock: the top tile, every item (minimized

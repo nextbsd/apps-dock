@@ -85,6 +85,11 @@
   return _dockAlignment;
 }
 
+- (BOOL) settingsControllerDockAlignmentApplies: (SettingsController *)controller
+{
+  return [self dockIsMacMenuStyle];
+}
+
 - (NSString *) settingsControllerCurrentDockCellSizeTitle: (SettingsController *)controller
 {
   return [DockPreferences largerCellSizeTitle];

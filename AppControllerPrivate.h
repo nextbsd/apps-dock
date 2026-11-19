@@ -88,9 +88,10 @@
 - (CGFloat) activeDockGap;
 - (CGFloat) activeDockWindowWidth;
 - (NSUInteger) dockSectionGapCount;
-/* On WindowServer, centred (DockAlignmentCenter): the Dock's window is
- * as long as what's in it. */
+/* On WindowServer, centred (DockAlignmentCenter) in the Mac menu
+ * style: the Dock's window is as long as what's in it. */
 - (BOOL) dockSizesToContent;
+- (BOOL) dockIsMacMenuStyle;
 - (NSUInteger) dockCellCount;
 - (CGFloat) dockContentLength;
 - (CGFloat) activeDockCellSize;
