@@ -42,6 +42,14 @@ for tool in "$WSCTL" "$POSTDS"; do
 done
 command -v defaults >/dev/null || { echo "no defaults tool" >&2; exit 2; }
 
+# Keep the displays awake while this runs, and wake them first: display
+# sleep (10 minutes without input; wsctl's input doesn't count) stops
+# drawing. The hold goes when the script exits.
+if command -v caffeinate >/dev/null; then
+	caffeinate -u -t 2 >/dev/null 2>&1
+	caffeinate -d -i -w $$ &
+fi
+
 pass=0
 fail=0
 LOG=$(mktemp /tmp/live-no-top-dock.XXXXXX)
