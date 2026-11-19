@@ -270,6 +270,32 @@ DockBluetoothBatteryLow(NSDictionary *device)
   return battery >= 0 && battery <= BTBatteryLow;
 }
 
+/* A device's name for its menu item, before what follows it (its
+ * battery or state). The menu grows to fit its widest item (libs-gui
+ * sizes it), so a long name shows in full, up to a third of the main
+ * screen; past that the name gives way in the middle, so the battery
+ * after it always shows. */
+static NSString *
+DockBluetoothMenuName(NSString *name, NSString *suffix)
+{
+  NSDictionary *attributes =
+    [NSDictionary dictionaryWithObject:[NSFont menuFontOfSize:0]
+				forKey:NSFontAttributeName];
+  CGFloat limit = floor(NSWidth([[NSScreen mainScreen] frame]) / 3.0)
+    - [suffix sizeWithAttributes:attributes].width;
+  NSUInteger keep = [name length];
+  NSString *shown = name;
+
+  while (keep > 2 && [shown sizeWithAttributes:attributes].width > limit)
+    {
+      keep--;
+      shown = [NSString stringWithFormat:@"%@…%@",
+			[name substringToIndex:(keep + 1) / 2],
+			[name substringFromIndex:[name length] - keep / 2]];
+    }
+  return shown;
+}
+
 /* A small battery for a menu item: an outline in the menu's text color,
  * filled to the level, red when low. */
 static NSImage *
@@ -425,23 +451,26 @@ DockBluetoothGauge(int percent)
 	  NSDictionary *device = [_devices objectAtIndex:i];
 	  int state = [[device objectForKey:@"state"] intValue];
 	  int battery = DockBluetoothBattery(device);
-	  NSString *title = [device objectForKey:@"name"];
+	  NSString *suffix = @"";
+	  NSString *title;
 
 	  if (state == BTDeviceConnecting)
 	    {
-	      title = [title stringByAppendingString:@"  (connecting…)"];
+	      suffix = @"  (connecting…)";
 	    }
 	  else if (state == BTDevicePairing)
 	    {
-	      title = [title stringByAppendingString:@"  (pairing…)"];
+	      suffix = @"  (pairing…)";
 	    }
 	  else if (battery >= 0)
 	    {
-	      title = [title stringByAppendingFormat:
-			       DockBluetoothBatteryLow(device)
-			       ? @" — %d%%, battery low" : @" — %d%%",
-			     battery];
+	      suffix = [NSString stringWithFormat:
+				   DockBluetoothBatteryLow(device)
+				 ? @" — %d%%, battery low" : @" — %d%%",
+				 battery];
 	    }
+	  title = [DockBluetoothMenuName([device objectForKey:@"name"], suffix)
+		    stringByAppendingString:suffix];
 	  item = (NSMenuItem *)[menu addItemWithTitle:title
 					       action:@selector(toggleDevice:)
 					keyEquivalent:@""];
