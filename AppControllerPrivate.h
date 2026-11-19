@@ -92,6 +92,14 @@
  * style: the Dock's window is as long as what's in it. */
 - (BOOL) dockSizesToContent;
 - (BOOL) dockIsMacMenuStyle;
+/* NO in the Mac menu style on WindowServer: the Dock is never at the
+ * top, above or below the menu bar, as on macOS. */
+- (BOOL) dockCanBeAtTop;
+/* Where the Dock goes for a placement: a top one goes to the bottom
+ * while the Dock can't be at the top. The saved one is left as it is. */
+- (DockPlacement) effectiveDockPlacement: (DockPlacement)placement;
+/* On WindowServer: the saved placement for the window mode, effective. */
+- (DockPlacement) windowServerDockPlacement;
 - (NSUInteger) dockCellCount;
 - (CGFloat) dockContentLength;
 - (CGFloat) activeDockCellSize;

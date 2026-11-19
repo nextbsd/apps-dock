@@ -90,6 +90,11 @@
   return [self dockIsMacMenuStyle];
 }
 
+- (BOOL) settingsControllerDockCanBeAtTop: (SettingsController *)controller
+{
+  return [self dockCanBeAtTop];
+}
+
 - (NSString *) settingsControllerCurrentDockCellSizeTitle: (SettingsController *)controller
 {
   return [DockPreferences largerCellSizeTitle];
@@ -297,6 +302,7 @@ itemWigglesOnAttentionRequest: (DockItem *)item
     {
       [_preferences saveDockPlacement:placement];
       [_preferences saveDockPosition:placement];
+      _dockPlacement = [self effectiveDockPlacement:placement];
     }
   [self applyDockPlacement];
 }

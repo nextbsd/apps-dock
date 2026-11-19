@@ -61,6 +61,7 @@ SettingsClampedWindowAlpha(CGFloat alpha)
 - (DockItem *) selectedApplicationItem;
 - (void) selectApplicationItem: (DockItem *)item;
 - (void) updateControls;
+- (void) updatePlacementChoices;
 - (void) showWindow: (id)sender;
 - (void) showWindowForItem: (DockItem *)item;
 - (void) closePanel: (id)sender;

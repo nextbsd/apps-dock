@@ -18,6 +18,7 @@
  */
 
 #import "SettingsControllerPrivate.h"
+#import "WSDockManager.h"
 
 @implementation SettingsController (Updates)
 
@@ -90,6 +91,44 @@
 }
 
 
+/*
+ * On WindowServer, Top is offered only where the Dock can be at the top:
+ * not in the Mac menu style, as on macOS. Then the Dock shows where it
+ * is, at the bottom for a saved top, and the pop-up says why.
+ */
+- (void) updatePlacementChoices
+{
+  NSInteger topTag = (NSInteger)DockPlacementTopCenter;
+  NSInteger topIndex;
+  BOOL canBeAtTop;
+
+  if (![WSDockManager isWindowServerSession])
+    {
+      return;
+    }
+  canBeAtTop = [_delegate settingsControllerDockCanBeAtTop:self];
+  topIndex = [_placementPopup indexOfItemWithTag:topTag];
+  if (canBeAtTop && topIndex < 0)
+    {
+      /* Back in its place, between Right and Bottom. */
+      NSInteger index = [_placementPopup indexOfItemWithTag:
+			   (NSInteger)DockPlacementBottomCenter];
+
+      if (index < 0)
+	{
+	  index = [_placementPopup numberOfItems];
+	}
+      [_placementPopup insertItemWithTitle:@"Top" atIndex:index];
+      [[_placementPopup itemAtIndex:index] setTag:topTag];
+    }
+  else if (!canBeAtTop && topIndex >= 0)
+    {
+      [_placementPopup removeItemAtIndex:topIndex];
+    }
+  [_placementPopup setToolTip:canBeAtTop ? nil
+		   : @"The Dock can't be at the top with the Mac menu bar."];
+}
+
 - (void) updateControls
 {
   [self updateExtraControls];
@@ -114,6 +153,7 @@
       selectedItem = [items objectAtIndex:selectedIndex];
     }
 
+  [self updatePlacementChoices];
   [_placementPopup selectItemWithTag:
 		     (NSInteger)[_delegate settingsControllerDockPlacement:self]];
   [_alignmentPopup selectItemWithTag:

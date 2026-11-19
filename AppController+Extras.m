@@ -60,13 +60,28 @@
 }
 
 /* The menu style may have changed (Workspace Preferences): the extras
- * move to or from the menu bar, and the Dock is centred (Mac) or runs
- * the length of its edge again (NeXT). Asked once the backend has
+ * move to or from the menu bar, the Dock is centred (Mac) or runs the
+ * length of its edge again (NeXT), and a top Dock goes to the bottom
+ * (Mac) or back to the top (NeXT, in-window). Asked once the backend has
  * followed the change, on the next pass of the run loop. */
 - (void) updateDockExtrasPlace
 {
+  BOOL moved = NO;
+
   [_extrasController setShowsExtrasInMenuBar:[self dockExtrasGoInMenuBar]];
-  if ([_dockView sizesToContent] != [self dockSizesToContent])
+  if ([WSDockManager isWindowServerSession])
+    {
+      DockPlacement placement;
+
+      [[NSUserDefaults standardUserDefaults] synchronize];
+      placement = [self windowServerDockPlacement];
+      if (placement != _dockPlacement)
+	{
+	  _dockPlacement = placement;
+	  moved = YES;
+	}
+    }
+  if (moved || [_dockView sizesToContent] != [self dockSizesToContent])
     {
       [self applyDockPlacement];
     }
