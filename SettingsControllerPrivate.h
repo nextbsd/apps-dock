@@ -67,6 +67,7 @@ SettingsClampedWindowAlpha(CGFloat alpha)
 - (BOOL) windowShouldClose: (id)sender;
 - (void) windowWillClose: (NSNotification *)notification;
 - (void) placementChanged: (id)sender;
+- (void) alignmentChanged: (id)sender;
 - (void) backgroundColorChanged: (id)sender;
 - (void) transparencyChanged: (id)sender;
 - (void) showBorderChanged: (id)sender;

@@ -36,6 +36,15 @@ typedef enum
     DockRunningIndicatorModeNotRunningDots = 1
   } DockRunningIndicatorMode;
 
+/* Where a Dock on WindowServer sits along its screen edge (the
+ * DockAlignment default): in the middle, sized to what's in it, as on
+ * macOS, or filling the edge from its start. */
+typedef enum
+  {
+    DockAlignmentCenter = 0,
+    DockAlignmentStart = 1
+  } DockAlignment;
+
 @protocol DockViewDelegate
 - (void) dockViewDidReceivePaths: (NSArray *)paths;
 - (void) dockViewDidReceivePaths: (NSArray *)paths
@@ -69,6 +78,9 @@ typedef enum
 - (void) dockViewDidEmptyRecycler: (id)dockView;
 /* The user dragged a Dock extra: the status area's new order. */
 - (void) dockView: (id)dockView didReorderExtras: (NSArray *)extras;
+/* A Dock sized to its contents needs another length: it makes room
+ * for a drop slot, or the drag ended (-reservesDropSlot). */
+- (void) dockViewDidChangeContentLength: (id)dockView;
 @end
 
 @interface DockView : NSView
@@ -118,6 +130,8 @@ typedef enum
   NSTimeInterval _lastMouseDownTime;
   BOOL _singleClickLaunchesApplications;
   BOOL _fillsColumn;
+  BOOL _sizesToContent;
+  BOOL _reservesDropSlot;
   /* The Dock extras in the status area (see DockExtra.h), top to
    * bottom, and a count per extra of its redraw requests, so that its
    * tile is drawn again only when it asked. */
@@ -167,6 +181,19 @@ typedef enum
  */
 - (void) setFillsColumn: (BOOL)fills;
 - (BOOL) fillsColumn;
+/*
+ * A column or row that is centred on its edge (DockAlignmentCenter)
+ * rather than filling it: laid out as above, but its window is only as
+ * long as what's in it, so the flexible gap is one section gap, and a
+ * divider sets the Recycler off from the items when there are no
+ * extras, as macOS sets off its Trash.
+ */
+- (void) setSizesToContent: (BOOL)sizesToContent;
+- (BOOL) sizesToContent;
+/* Whether a Dock sized to its contents makes room for a drop slot in
+ * the kept apps, which takes a cell: from when one opens until the
+ * drag ends, so that the Dock doesn't shrink under the pointer. */
+- (BOOL) reservesDropSlot;
 
 @end
 

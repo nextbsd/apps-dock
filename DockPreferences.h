@@ -59,6 +59,10 @@ enum
  * NSGlobalDomain's NBModeSettings, for the placement's edge, as
  * Workspace Preferences writes it; then tells other apps. */
 - (void) saveDockPosition: (DockPlacement)placement;
+/* On WindowServer: where the Dock sits along its edge, the
+ * DockAlignment default ("center", the default, or "start"). */
+- (DockAlignment) savedDockAlignment;
+- (void) saveDockAlignment: (DockAlignment)alignment;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor: (NSColor *)color;
 - (CGFloat) savedWindowAlpha;

@@ -168,7 +168,52 @@
 	running = YES;
     }
   return (running ? 1 : 0) + (windows ? 1 : 0)
-    + ([self dockExtraCount] > 0 ? 1 : 0);
+    + ([self dockExtraCount] > 0 || [self dockSizesToContent] ? 1 : 0);
+}
+
+- (BOOL) dockSizesToContent
+{
+  return [WSDockManager isWindowServerSession]
+    && _dockAlignment == DockAlignmentCenter;
+}
+
+/* The cells along the Dock: the top tile, every item (minimized
+ * windows too), the Dock extras and the Recycler, any empty slots
+ * before kept apps, and a kept apps' drop slot while the Dock makes
+ * room for one. */
+- (NSUInteger) dockCellCount
+{
+  NSUInteger count = [_items count] + [self dockExtraCount] + 2;
+  NSUInteger i;
+
+  if ([_preferences savedAllowsGaps])
+    {
+      for (i = 0; i < [_items count]; i++)
+	{
+	  DockItem *item = [_items objectAtIndex:i];
+
+	  if ([item isPinned] && [item gapBefore])
+	    count++;
+	}
+    }
+  if ([_dockView reservesDropSlot])
+    {
+      count++;
+    }
+  return count;
+}
+
+/* How long a centred Dock is, as DockView lays it out: the padding at
+ * both ends, the cells and the gaps between them, and the section gaps,
+ * the one before the extras or the Recycler included. */
+- (CGFloat) dockContentLength
+{
+  CGFloat cell = [self activeDockCellSize];
+  NSUInteger count = [self dockCellCount];
+
+  return 2.0 * [self activeDockPad] + count * cell
+    + (count - 1) * [self activeDockGap]
+    + [self dockSectionGapCount] * floor(cell * DockSectionGapFraction);
 }
 
 /*
@@ -191,23 +236,9 @@
     {
       return cell;
     }
-  /* The top tile, every item (minimized windows too), the Dock extras
-   * and the Recycler, plus the gaps between sections, which are a
-   * fraction of a cell, and any empty slots before kept apps; the
-   * flexible gap can be empty. */
-  count = [_items count] + [self dockExtraCount] + 2;
-  if ([_preferences savedAllowsGaps])
-    {
-      NSUInteger i;
-
-      for (i = 0; i < [_items count]; i++)
-	{
-	  DockItem *item = [_items objectAtIndex:i];
-
-	  if ([item isPinned] && [item gapBefore])
-	    count++;
-	}
-    }
+  /* The cells, plus the gaps between sections, which are a fraction
+   * of a cell; the flexible gap can be empty. */
+  count = [self dockCellCount];
   cells = count + [self dockSectionGapCount] * DockSectionGapFraction;
   /* Along the Dock's own frame: below the Mac menu bar, if any. */
   frame = [self windowServerDockFrameForEdge:

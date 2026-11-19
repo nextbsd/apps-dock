@@ -39,13 +39,9 @@
     }
   [self applyDockCellSizeToView];
   [_dockView setHorizontal:[DockPreferences placementIsHorizontal:_dockPlacement]];
-  [_window setFrame:[self dockWindowFrameForPlacement:_dockPlacement]
-            display:YES];
-  [_dockView setFrame:NSMakeRect(0, 0,
-                                 NSWidth([_window frame]),
-                                 NSHeight([_window frame]))];
+  [_dockView setSizesToContent:[self dockSizesToContent]];
+  [self applyDockWindowFrame];
   [_windowManager setDockPlacement:_dockPlacement];
-  [self reportDockEdge];
   for (i = 0; i < [_items count]; i++)
     {
       DockItem *item = [_items objectAtIndex:i];
@@ -57,6 +53,25 @@
     }
   [self updateDockBackground];
   [self updateDockMenu];
+}
+
+- (void) applyDockWindowFrame
+{
+  NSRect frame = [self dockWindowFrameForPlacement:_dockPlacement];
+
+  if (!NSEqualRects(frame, [_window frame]))
+    {
+      [_window setFrame:frame display:YES];
+    }
+  [_dockView setFrame:NSMakeRect(0, 0, NSWidth(frame), NSHeight(frame))];
+  [self reportDockEdge];
+}
+
+/* DockView: a centred Dock makes room for a drop slot, or no longer. */
+- (void) dockViewDidChangeContentLength: (id)dockView
+{
+  [self applyDockCellSizeToView];
+  [self applyDockWindowFrame];
 }
 
 /*

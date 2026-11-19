@@ -67,6 +67,13 @@
 }
 
 
+- (void) alignmentChanged: (id)sender
+{
+  [_delegate settingsController:self
+	 didChangeDockAlignment:(DockAlignment)[sender selectedTag]];
+}
+
+
 - (void) backgroundColorChanged: (id)sender
 {
   [_delegate settingsController:self

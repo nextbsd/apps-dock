@@ -86,9 +86,11 @@
 
 - (void) dockExtrasControllerDidChangeExtras: (DockExtrasController *)controller
 {
-  /* The extras take cells too, so the tiles may need to shrink. */
+  /* The extras take cells too, so the tiles may need to shrink, and a
+   * centred Dock grows or shrinks with them. */
   [self applyDockCellSizeToView];
   [_dockView setExtras:[controller shownExtras]];
+  [self applyDockWindowFrame];
 }
 
 - (void) dockExtrasController: (DockExtrasController *)controller

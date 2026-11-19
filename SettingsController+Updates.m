@@ -116,6 +116,8 @@
 
   [_placementPopup selectItemWithTag:
 		     (NSInteger)[_delegate settingsControllerDockPlacement:self]];
+  [_alignmentPopup selectItemWithTag:
+		     (NSInteger)[_delegate settingsControllerDockAlignment:self]];
 
   cellSizeMode = [_delegate settingsControllerDockCellSizeMode:self];
   [_currentCellSizeButton setTitle:

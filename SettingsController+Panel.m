@@ -175,6 +175,28 @@
 
   [_placementPopup setFrame:NSMakeRect(132, 260, 170, 26)];
 
+  /* Where the Dock sits along that edge, its position on screen, on
+   * WindowServer only (X11's placements say it themselves): the edge
+   * moves up a row to make room. */
+  if ([WSDockManager isWindowServerSession])
+    {
+      [label setFrame:NSMakeRect(18, 304, 110, 20)];
+      [_placementPopup setFrame:NSMakeRect(132, 300, 170, 26)];
+      label = [self labelWithTitle:@"Alignment"
+			     frame:NSMakeRect(18, 264, 110, 20)];
+      [dockView addSubview:label];
+      _alignmentPopup =
+	[[NSPopUpButton alloc] initWithFrame:NSMakeRect(132, 260, 170, 26)
+				   pullsDown:NO];
+      [_alignmentPopup addItemWithTitle:@"Centered"];
+      [[_alignmentPopup itemAtIndex:0] setTag:DockAlignmentCenter];
+      [_alignmentPopup addItemWithTitle:@"Start of Edge"];
+      [[_alignmentPopup itemAtIndex:1] setTag:DockAlignmentStart];
+      [_alignmentPopup setTarget:self];
+      [_alignmentPopup setAction:@selector(alignmentChanged:)];
+      [dockView addSubview:_alignmentPopup];
+    }
+
   label = [self labelWithTitle:@"Icon Cells"
 			 frame:NSMakeRect(18, 218, 110, 20)];
   [dockView addSubview:label];

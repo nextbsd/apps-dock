@@ -53,6 +53,7 @@
   NSTimer *_applicationExitTimer;
   NSMenu *_dockMenu;
   DockPlacement _dockPlacement;
+  DockAlignment _dockAlignment;
   NSInteger _dockCellSizeMode;
   DockRunningIndicatorMode _runningIndicatorMode;
   NSColor *_backgroundColor;
