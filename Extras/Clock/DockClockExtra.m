@@ -25,30 +25,43 @@
  * It wakes on the minute (on the second while seconds are shown) from a
  * timerfd armed for the next boundary of the wall clock, with
  * TFD_TIMER_CANCEL_ON_SET so that setting the clock wakes it at once
- * too. Time zone changes come from notify(3) (com.apple.system.timezone)
- * where something posts it, and from /etc/localtime's change time, read
- * on each tick.
+ * too. Time zone changes come from notify(3) (com.apple.system.timezone,
+ * which the settings helper's SetTimeZone posts), and from
+ * /etc/localtime's change time, read on each tick; the zone itself is
+ * the one /var/db/zoneinfo names (DockClockResetTimeZone()).
  *
  * Defaults (the Dock's): DockExtraClockAnalog, DockExtraClock24Hour,
- * DockExtraClockShowsSeconds, DockExtraClockShowsDate.
+ * DockExtraClockShowsSeconds, DockExtraClockShowsDate. Date & Time.app
+ * (apps-settings DateTime) sets them too, from its Clock tab: it writes
+ * the keys to the Dock's domain and posts the settings apps' distributed
+ * notification org.nextbsd.SettingsChanged (userInfo: domain DockWM,
+ * keys), on which the extra reads them again and redraws. The extra
+ * posts the same when its own menu changes them, so the app follows.
+ * The menu ends with "Open Date & Time Settings…" (DockExtra.h).
  */
 
 #import <AppKit/AppKit.h>
 #import <GNUstepBase/GNUstep.h>
 #import "DockExtra.h"
 #import "DockExtraNotify.h"
+#import "DockExtrasSettings.h"
 #import "DockClockCalendar.h"
 
 #include <sys/stat.h>
 #include <sys/timerfd.h>
 #include <errno.h>
 #include <math.h>
+#include <stdlib.h>
 #include <time.h>
 
 #define AnalogKey @"DockExtraClockAnalog"
 #define TwentyFourHourKey @"DockExtraClock24Hour"
 #define ShowsSecondsKey @"DockExtraClockShowsSeconds"
 #define ShowsDateKey @"DockExtraClockShowsDate"
+
+/* The settings apps' "settings changed" (the settings apps design's
+ * NBSettings), userInfo: domain, keys. */
+#define SettingsChangedNotification @"org.nextbsd.SettingsChanged"
 
 @interface DockClockExtra : NSObject <DockExtra>
 {
@@ -63,6 +76,44 @@
   DockClockCalendar *_calendar;
 }
 @end
+
+/* Follow a change of the system's time zone.
+ *
+ * GNUstep can't be asked to look again: it takes the system zone from
+ * ICU first, and ICU works it out once per process, so after
+ * +resetSystemTimeZone the Dock still gets the old zone. The zone's name
+ * is in /var/db/zoneinfo, where tzsetup and the settings helper's
+ * SetTimeZone (which posts com.apple.system.timezone) record it, so the
+ * clock makes that zone GNUstep's default. Without a name there it
+ * falls back on what GNUstep finds.
+ *
+ * libc is told too: FreeBSD's tzset() reads /etc/localtime again only
+ * about once a minute, but setting TZ and taking it away makes it read
+ * it now. A TZ the Dock was started with wins, and is left alone. */
+static void
+DockClockResetTimeZone(void)
+{
+  NSString *name;
+  NSTimeZone *zone = nil;
+
+  if (getenv("TZ") == NULL)
+    {
+      setenv("TZ", "UTC0", 1);
+      tzset();
+      unsetenv("TZ");
+      name = [NSString stringWithContentsOfFile:@"/var/db/zoneinfo"];
+      name = [[[name componentsSeparatedByString:@"\n"] objectAtIndex:0]
+	       stringByTrimmingCharactersInSet:
+		 [NSCharacterSet whitespaceCharacterSet]];
+      if ([name length])
+	{
+	  zone = [NSTimeZone timeZoneWithName:name];
+	}
+    }
+  tzset();
+  [NSTimeZone resetSystemTimeZone];
+  [NSTimeZone setDefaultTimeZone:zone ? zone : [NSTimeZone systemTimeZone]];
+}
 
 static NSArray *
 DockClockRunLoopModes(void)
@@ -122,6 +173,11 @@ DockClockRunLoopModes(void)
 	  [_notifyHandle waitForDataInBackgroundAndNotifyForModes:
 			   DockClockRunLoopModes()];
 	}
+      [[NSDistributedNotificationCenter defaultCenter]
+	addObserver:self
+	   selector:@selector(settingsChanged:)
+	       name:SettingsChangedNotification
+	     object:nil];
       [self checkTimeZone];
       [self armTimer];
     }
@@ -132,6 +188,7 @@ DockClockRunLoopModes(void)
 {
   [NSObject cancelPreviousPerformRequestsWithTarget:self];
   [[NSNotificationCenter defaultCenter] removeObserver:self];
+  [[NSDistributedNotificationCenter defaultCenter] removeObserver:self];
   [_calendar close];
   DESTROY(_calendar);
   /* closeFile stops the run loop watching the descriptor, and closes it. */
@@ -205,8 +262,7 @@ DockClockRunLoopModes(void)
       _zoneChange = st.st_ctim;
       if (!first)
 	{
-	  tzset();
-	  [NSTimeZone resetSystemTimeZone];
+	  DockClockResetTimeZone();
 	}
     }
 }
@@ -228,13 +284,28 @@ DockClockRunLoopModes(void)
 - (void) timeChanged: (NSNotification *)notification
 {
   DockExtraNotifyDrain(_notifyPipe[0]);
-  tzset();
-  [NSTimeZone resetSystemTimeZone];
+  DockClockResetTimeZone();
   [_host dockExtraNeedsDisplay:self];
   [_calendar setToday:[NSDate date]];
   [self armTimer];
   [self performSelector:@selector(watchNotifications) withObject:nil
 	     afterDelay:0.0];
+}
+
+/* Date & Time.app changed the clock's settings in the Dock's domain:
+ * read them again (synchronize picks up another process's change to
+ * the file) and redraw. */
+- (void) settingsChanged: (NSNotification *)notification
+{
+  id domain = [[notification userInfo] objectForKey:@"domain"];
+
+  if (domain && ![domain isEqual:DockExtrasDefaultsDomain])
+    {
+      return;
+    }
+  [[NSUserDefaults standardUserDefaults] synchronize];
+  [self armTimer];
+  [_host dockExtraNeedsDisplay:self];
 }
 
 - (void) watchNotifications
@@ -514,6 +585,10 @@ DockClockDrawHand(NSPoint center, CGFloat angle, CGFloat length,
 	  state:[defaults boolForKey:ShowsSecondsKey] toMenu:menu];
   [self addItem:@"Show Date" action:@selector(toggleDate:)
 	  state:[defaults boolForKey:ShowsDateKey] toMenu:menu];
+  /* DateTime.app: gnustep-make can't name a bundle "Date & Time". */
+  DockExtraAddSettingsItem(menu, _host, @"Open Date & Time Settings…",
+			   [NSArray arrayWithObjects:@"Date & Time",
+				    @"DateTime", nil]);
   return menu;
 }
 
@@ -525,6 +600,15 @@ DockClockDrawHand(NSPoint center, CGFloat angle, CGFloat length,
   [defaults synchronize];
   [self armTimer];
   [_host dockExtraNeedsDisplay:self];
+  /* Date & Time.app's Clock tab follows. */
+  [[NSDistributedNotificationCenter defaultCenter]
+    postNotificationName:SettingsChangedNotification
+		  object:nil
+		userInfo:[NSDictionary dictionaryWithObjectsAndKeys:
+					 DockExtrasDefaultsDomain, @"domain",
+				       [NSArray arrayWithObject:key], @"keys",
+				       nil]
+      deliverImmediately:YES];
 }
 
 - (void) showCalendar: (id)sender
