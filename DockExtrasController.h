@@ -24,7 +24,8 @@
  * puts the shown extras in the Dock's status area.
  *
  * Defaults: DockExtrasOrder (identifiers, top to bottom), DockExtrasHidden
- * (identifiers), and DockExtrasTestData (YES or a dictionary; see the
+ * (identifiers; other apps change it through the Dock, see
+ * DockExtrasSettings.h), and DockExtrasTestData (YES or a dictionary; see the
  * README) for made-up data where the hardware is missing.
  */
 
@@ -45,6 +46,9 @@
 	      panelFrameForExtra: (id)extra
 			    size: (NSSize)size;
 - (CGFloat) dockExtrasControllerCellSize: (DockExtrasController *)controller;
+/* An extra's "Open ... Settings" item was chosen. */
+- (void) dockExtrasController: (DockExtrasController *)controller
+	openApplicationAtPath: (NSString *)path;
 @end
 
 @interface DockExtrasController : NSObject <DockExtraHost>
@@ -73,6 +77,8 @@
 /* For the settings: every extra found, in order, as dictionaries with
  * identifier, name, hidden (NSNumber) and available (NSNumber). */
 - (NSArray *) extrasDescriptions;
+/* Show or hide an extra, save DockExtrasHidden, and post
+ * org.nextbsd.Dock.ExtrasChanged. */
 - (void) setHidden: (BOOL)hidden forExtraWithIdentifier: (NSString *)identifier;
 
 @end

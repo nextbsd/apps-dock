@@ -113,6 +113,40 @@ an extra moves it within the status area; it can't be dragged out of it
 or onto the Recycler. The order is saved as `DockExtrasOrder`. Each extra
 can be hidden in **Settings → Extras** (`DockExtrasHidden`).
 
+As on macOS, an extra appears by itself only where its hardware is (a
+battery, a Wi-Fi radio, a Bluetooth controller, a sound device, two
+keyboard layouts or more); the clock is always there. Its menu gives the
+quick controls and ends with **Open X Settings…**, which opens the
+settings app with the rest (`Bluetooth.app`, `Energy.app`,
+`Keyboard.app`; `Network.app` and `Sound.app` once they exist) from
+`~/Applications`, `/System/Applications`, `/Local/Applications` or
+`/Network/Applications`, or brings it forward when it's running. While
+the app isn't installed the item isn't there. Extras add it with
+`DockExtraAddSettingsItem()` (`DockExtra.h`).
+
+#### Showing and hiding extras from the settings apps
+
+The settings apps' **Show X in Dock** checkboxes (nextbsd/apps-settings)
+turn extras on and off, live, the way macOS's "Show X in menu bar" does.
+The Dock owns the list (`DockExtrasSettings.h` has the names):
+
+- **Where:** the Dock's defaults domain `DockWM`, key `DockExtrasHidden`,
+  an array of the hidden extras' `CFBundleIdentifier`s. An extra that
+  isn't in it is shown.
+- **Asking:** another app doesn't write the list while the Dock runs; it
+  posts the distributed notification `org.nextbsd.Dock.SetExtraHidden`
+  with userInfo `identifier` (string) and `hidden` (boolean). The Dock
+  loads or unloads the extra at once and saves the list.
+- **Answer:** whenever the list changes, or a request comes in, the Dock
+  posts `org.nextbsd.Dock.ExtrasChanged` with userInfo `hidden` (the new
+  list), so every checkbox (and the Dock's own Settings → Extras) follows.
+- **No Dock:** an app that hears no answer within two seconds writes
+  `DockExtrasHidden` itself; the Dock reads it when it starts.
+
+The identifiers: `org.nextbsd.dockextra.wifi`, `.bluetooth`, `.battery`,
+`.sound`, `.input`, `.clock`. apps-settings' `Shared/NBDockExtra` is the
+apps' side.
+
 The status area exists only where the Dock fills its screen edge (on
 WindowServer), so extras are loaded there only. It runs along the Dock,
 down a column or across a row; nothing in it assumes the right edge.
@@ -138,6 +172,24 @@ Bundled extras:
   panel. Scanning, joining and disconnecting go through `wlan(8)`, the
   supported way for the desktop to drive wland. WPA-Enterprise networks
   are listed but joined with `wlan connect --eap`. No radio: no tile.
+
+- **Bluetooth** (`Bluetooth.dockextra`): the Bluetooth rune, dimmed while
+  Bluetooth is off, with a dot when a device is connected (named in the
+  tooltip). The menu turns Bluetooth on or off and lists the paired
+  devices, the connected ones checked: choosing one connects or
+  disconnects it. **Open Bluetooth Settings…** opens Bluetooth.app for
+  pairing, nearby devices and headset audio. It talks to bluetoothd as
+  Bluetooth.app does, over its MIG interface (`org.nextbsd.bluetooth`,
+  with `BTClient.c` and `mig/` copied from apps-settings), and follows its
+  `org.nextbsd.bluetooth.*` notify(3) keys and `State:/Bluetooth`. No
+  controller or no bluetoothd: no tile (it looks again every 10 seconds).
+
+- **Input** (`Input.dockextra`): the keyboard layout in use by its short
+  name (EN, ΕΛ, РУ); the menu lists the layouts and switches to the one
+  chosen, through WindowServer (`WS_MSG_SET_KEYBOARD_LAYOUT`), and follows
+  `WS_EVENT_KEYBOARD_LAYOUT`, so the switching shortcut shows at once.
+  Shown with two layouts or more. Keyboard.app sets the layouts. (It was
+  built with Keyboard.app in apps-settings before.)
 
 - **Battery** (`Battery.dockextra`): the charge as a battery glyph, a
   bolt on the power adapter, and the percentage (**Show Percentage**,

@@ -349,6 +349,8 @@ DockBatteryDuration(int minutes)
   [item setTarget:self];
   [item setState:[[NSUserDefaults standardUserDefaults]
 		   boolForKey:ShowsPercentageKey] ? NSOnState : NSOffState];
+  DockExtraAddSettingsItem(menu, _host, @"Open Energy Settings…",
+			   [NSArray arrayWithObject:@"Energy"]);
   return menu;
 }
 

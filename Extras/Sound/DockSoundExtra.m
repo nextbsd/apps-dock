@@ -605,6 +605,8 @@ DockSoundOutputs(void)
 				    keyEquivalent:@""];
       [menu setSubmenu:outputs forItem:item];
     }
+  DockExtraAddSettingsItem(menu, _host, @"Open Sound Settings…",
+			   [NSArray arrayWithObject:@"Sound"]);
   return menu;
 }
 

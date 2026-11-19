@@ -1,0 +1,5 @@
+{
+  CFBundleIdentifier = "org.nextbsd.dockextra.bluetooth";
+  CFBundleName = "Bluetooth";
+  DockExtraDefaultPosition = 15;
+}

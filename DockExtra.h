@@ -48,7 +48,14 @@
  * if the extra implements -dockExtraOpen:, opens something (an app or a
  * preferences pane) instead. The user orders the extras by dragging them
  * within the status area; they can't be dragged out or into the
- * Recycler, and each one can be hidden from the Dock's settings.
+ * Recycler, and each one can be hidden from the Dock's settings, or from
+ * a settings app's "Show ... in Dock" checkbox (DockExtrasSettings.h).
+ *
+ * Like a macOS menu extra, an extra's menu gives quick controls and ends
+ * with an "Open X Settings..." item for the settings app that has the
+ * rest: DockExtraAddSettingsItem() below. An extra shows only where its
+ * hardware is (-isAvailable), so a Mac-like list of extras appears by
+ * itself.
  */
 
 #import <AppKit/AppKit.h>
@@ -75,6 +82,13 @@
 /* The test data's settings, from the DockExtrasTestData dictionary (an
  * empty dictionary when the default is just YES). */
 - (NSDictionary *) dockExtrasTestData;
+@optional
+/* An "Open ... Settings" item that launches the first of these apps
+ * ("Bluetooth", "Energy") found in ~/Applications, /System/Applications,
+ * /Local/Applications or /Network/Applications, or nil when none is
+ * installed. Its target is the host. Use DockExtraAddSettingsItem(). */
+- (NSMenuItem *) dockExtraSettingsItemWithTitle: (NSString *)title
+				   applications: (NSArray *)names;
 @end
 
 @protocol DockExtra <NSObject>
@@ -132,6 +146,32 @@ DockExtraDrawPlate(NSRect cell)
   [[NSColor colorWithCalibratedWhite:1.0 alpha:0.16] set];
   [path setLineWidth:1.0];
   [path stroke];
+}
+
+/* End menu with a separator and "title" (Open Bluetooth Settings...),
+ * which launches the first of the settings apps named that is installed.
+ * With none of them installed (or an older Dock), the menu is left as it
+ * was. */
+static inline void
+DockExtraAddSettingsItem(NSMenu *menu, id host, NSString *title,
+			 NSArray *applications)
+{
+  NSMenuItem *item = nil;
+
+  if ([host respondsToSelector:
+	      @selector(dockExtraSettingsItemWithTitle:applications:)])
+    {
+      item = [host dockExtraSettingsItemWithTitle:title
+				     applications:applications];
+    }
+  if (item)
+    {
+      if ([menu numberOfItems])
+	{
+	  [menu addItem:[NSMenuItem separatorItem]];
+	}
+      [menu addItem:item];
+    }
 }
 
 /* The plate's foreground: white, or dimmed for "off" and "none". */

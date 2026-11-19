@@ -607,6 +607,8 @@ DockWiFiParseScan(NSData *data)
 				keyEquivalent:@""];
   [item setTarget:self];
   [item setEnabled:!_scanTask && !_testData];
+  DockExtraAddSettingsItem(menu, _host, @"Open Network Settings…",
+			   [NSArray arrayWithObject:@"Network"]);
   /* Next time, the list is fresh. */
   if (!_scanDate || -[_scanDate timeIntervalSinceNow] > DockWiFiRescanAge)
     {

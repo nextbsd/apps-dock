@@ -18,10 +18,10 @@
  */
 
 #import "DockExtrasController.h"
+#import "DockExtrasSettings.h"
 #import <GNUstepBase/GNUstep.h>
 
 #define DockExtrasOrderKey @"DockExtrasOrder"
-#define DockExtrasHiddenKey @"DockExtrasHidden"
 #define DockExtrasTestDataKey @"DockExtrasTestData"
 
 @interface DockExtrasController (Private)
@@ -31,6 +31,7 @@
 - (BOOL) loadRecord: (NSMutableDictionary *)record;
 - (void) unloadRecord: (NSMutableDictionary *)record;
 - (void) updateShownExtras;
+- (void) postExtrasChanged;
 @end
 
 @implementation DockExtrasController
@@ -251,8 +252,10 @@
 					     [defaults arrayForKey:DockExtrasHiddenKey]];
   NSUInteger i;
 
-  if (hide == [hidden containsObject:identifier])
+  if (![identifier length] || hide == [hidden containsObject:identifier])
     {
+      /* Nothing to change, but whoever asked waits for an answer. */
+      [self postExtrasChanged];
       return;
     }
   if (hide)
@@ -265,6 +268,7 @@
     }
   [defaults setObject:hidden forKey:DockExtrasHiddenKey];
   [defaults synchronize];
+  [self postExtrasChanged];
   for (i = 0; i < [_records count]; i++)
     {
       NSMutableDictionary *record = [_records objectAtIndex:i];
@@ -312,6 +316,73 @@
 {
   return [_delegate dockExtrasController:self panelFrameForExtra:extra
 				    size:size];
+}
+
+- (NSString *) dockExtraPathForApplication: (NSArray *)names
+{
+  NSFileManager *manager = [NSFileManager defaultManager];
+  NSArray *folders = [NSArray arrayWithObjects:
+				[NSHomeDirectory()
+				  stringByAppendingPathComponent:@"Applications"],
+			      @"/System/Applications",
+			      @"/Local/Applications",
+			      @"/Network/Applications", nil];
+  NSUInteger i, j;
+
+  for (i = 0; i < [names count]; i++)
+    {
+      NSString *name = [names objectAtIndex:i];
+      NSString *path;
+
+      if (![[name pathExtension] isEqual:@"app"])
+	{
+	  name = [name stringByAppendingPathExtension:@"app"];
+	}
+      for (j = 0; j < [folders count]; j++)
+	{
+	  path = [[folders objectAtIndex:j] stringByAppendingPathComponent:name];
+	  if ([manager fileExistsAtPath:path])
+	    {
+	      return path;
+	    }
+	}
+      /* GNUstep's application folders, where they are elsewhere. */
+      path = [[NSWorkspace sharedWorkspace] fullPathForApplication:name];
+      if ([path length] && [manager fileExistsAtPath:path])
+	{
+	  return path;
+	}
+    }
+  return nil;
+}
+
+- (NSMenuItem *) dockExtraSettingsItemWithTitle: (NSString *)title
+				   applications: (NSArray *)names
+{
+  NSString *path = [self dockExtraPathForApplication:names];
+  NSMenuItem *item;
+
+  if (!path)
+    {
+      return nil;
+    }
+  item = AUTORELEASE([[NSMenuItem alloc] initWithTitle:title
+						action:@selector(openSettingsApplication:)
+					 keyEquivalent:@""]);
+  [item setTarget:self];
+  [item setRepresentedObject:path];
+  [item setEnabled:YES];
+  return item;
+}
+
+- (void) openSettingsApplication: (id)sender
+{
+  NSString *path = [sender representedObject];
+
+  if ([path length])
+    {
+      [_delegate dockExtrasController:self openApplicationAtPath:path];
+    }
 }
 
 - (CGFloat) dockExtraCellSize
@@ -483,6 +554,26 @@
       NS_ENDHANDLER
     }
   [record removeObjectForKey:@"instance"];
+}
+
+/* Tell the settings apps: their "Show ... in Dock" checkboxes follow. */
+- (void) postExtrasChanged
+{
+  NSArray *hidden = [[NSUserDefaults standardUserDefaults]
+		      arrayForKey:DockExtrasHiddenKey];
+
+  NS_DURING
+    [[NSDistributedNotificationCenter defaultCenter]
+      postNotificationName:DockExtrasChangedNotification
+		    object:nil
+		  userInfo:[NSDictionary dictionaryWithObject:
+					   hidden ? hidden : [NSArray array]
+						       forKey:@"hidden"]
+	deliverImmediately:YES];
+  NS_HANDLER
+    NSLog(@"DockWM: can't post %@: %@", DockExtrasChangedNotification,
+	  [localException reason]);
+  NS_ENDHANDLER
 }
 
 - (void) updateShownExtras
