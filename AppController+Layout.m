@@ -22,26 +22,44 @@
 @implementation AppController (Layout)
 
 /*
- * The Dock's screen: the main display, the first of +[NSScreen screens]
- * (NextBSD's several displays, nextbsd/libs-back#38), as macOS keeps
- * the Dock on the display with the menu bar. +mainScreen is the key
- * window's, which can be another display while the Dock's settings
- * panel is open there. WindowServer keeps the Dock's strip off that
- * display's usable area only.
+ * The Dock's screen, as macOS places it with several displays: on the
+ * left or right edge, the display furthest that way (the desktop's
+ * outer edge, not one between two displays); on the bottom or top, the
+ * main display, the first of +[NSScreen screens] (nextbsd/libs-back#38).
+ * Ties go to the earlier screen, the main one first, as WindowServer
+ * picks the display whose usable area loses the Dock's strip.
+ * +mainScreen is the key window's, which can be another display while
+ * the Dock's settings panel is open there.
  */
-- (NSScreen *) dockScreen
+- (NSScreen *) dockScreenForEdge: (DockEdge)edge
 {
   NSArray *screens = [NSScreen screens];
+  NSScreen *best = nil;
 
-  return [screens count] > 0 ? [screens objectAtIndex:0]
-			     : [NSScreen mainScreen];
+  if ([screens count] == 0)
+    return [NSScreen mainScreen];
+  best = [screens objectAtIndex:0];
+  if (edge != DockEdgeLeft && edge != DockEdgeRight)
+    return best;
+  for (NSScreen *s in screens)
+    {
+      if (edge == DockEdgeLeft
+	  ? NSMinX([s frame]) < NSMinX([best frame])
+	  : NSMaxX([s frame]) > NSMaxX([best frame]))
+	best = s;
+    }
+  return best;
+}
+
+- (NSScreen *) dockScreen
+{
+  return [self dockScreenForEdge:
+		 [DockPreferences edgeForPlacement:_dockPlacement]];
 }
 
 /*
- * The Dock's frame on WindowServer: the whole of one edge of the main
- * display, `thickness` deep. With a display arranged beside that edge,
- * it stays on the main display's own edge, not the desktop's outer one,
- * as on macOS.
+ * The Dock's frame on WindowServer: the whole of one edge of the Dock's
+ * screen (-dockScreenForEdge:), `thickness` deep.
  *
  * In the Mac menu style (NBMenuStyle macmenubar, nextbsd/libs-back#3)
  * the active app's menu bar runs along the top of the screen, and
@@ -55,10 +73,14 @@
 - (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
 			      thickness: (CGFloat)thickness
 {
-  NSRect screen = [[self dockScreen] frame];
+  NSScreen *dockScreen = [self dockScreenForEdge:edge];
+  NSRect screen = [dockScreen frame];
+  NSArray *screens = [NSScreen screens];
   CGFloat bar = 0;
 
-  if ([_windowManager respondsToSelector:@selector(menuBarHeight)])
+  /* the menu bar is only on the main display */
+  if (([screens count] == 0 || dockScreen == [screens objectAtIndex:0])
+      && [_windowManager respondsToSelector:@selector(menuBarHeight)])
     {
       bar = [(WSDockManager *)_windowManager menuBarHeight];
     }
@@ -87,7 +109,9 @@
 
 - (NSRect) dockWindowFrameForPlacement: (DockPlacement)placement
 {
-  NSRect screenFrame = [[self dockScreen] frame];
+  NSRect screenFrame = [[self dockScreenForEdge:
+				[DockPreferences edgeForPlacement:placement]]
+			 frame];
   NSUInteger cellCount = [_items count] + 2;
   if ([_preferences savedAllowsGaps])
     for (DockItem *item in _items)
