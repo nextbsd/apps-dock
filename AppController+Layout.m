@@ -126,13 +126,36 @@
   CGFloat x;
   CGFloat y;
 
-  /* On WindowServer the Dock fills a whole screen edge: a column on the
-   * left or right, a row along the top or bottom. */
+  /* On WindowServer the Dock is a column on the left or right edge of
+   * the screen, or a row along the top or bottom: in the middle of the
+   * edge and as long as what's in it (DockAlignmentCenter, as on
+   * macOS), so that it grows and shrinks as apps come and go, or
+   * filling the whole edge. The strip it reports (reportDockEdge) is
+   * its thickness either way. */
   if ([WSDockManager isWindowServerSession])
     {
-      return [self windowServerDockFrameForEdge:
-		     [DockPreferences edgeForPlacement:placement]
-				      thickness:thickness];
+      NSRect edge = [self windowServerDockFrameForEdge:
+			    [DockPreferences edgeForPlacement:placement]
+					     thickness:thickness];
+
+      if (![self dockSizesToContent])
+	{
+	  return edge;
+	}
+      length = ceil([self dockContentLength]);
+      if ([DockPreferences placementIsHorizontal:placement]
+	  && length < NSWidth(edge))
+	{
+	  edge.origin.x += floor((NSWidth(edge) - length) / 2.0);
+	  edge.size.width = length;
+	}
+      else if (![DockPreferences placementIsHorizontal:placement]
+	       && length < NSHeight(edge))
+	{
+	  edge.origin.y += floor((NSHeight(edge) - length) / 2.0);
+	  edge.size.height = length;
+	}
+      return edge;
     }
   if (height > NSHeight(screenFrame))
     {

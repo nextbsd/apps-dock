@@ -275,7 +275,8 @@
 
 /* The divider that sets the Dock extras off from the items, across
  * the flexible gap: in the middle of an empty section gap before the
- * first extra. */
+ * first extra. A Dock sized to its contents has it before the Recycler
+ * when there are no extras. */
 - (NSRect) extrasSeparatorRect
 {
   NSRect first;
@@ -283,11 +284,12 @@
   CGFloat inset = floor(DockSeparatorInset * _cellSize / DockCell);
   CGFloat half = floor(([self sectionGap] + _dockGap) / 2.0);
 
-  if (!_fillsColumn || ![_extras count])
+  if (!_fillsColumn || (![_extras count] && !_sizesToContent))
     {
       return NSZeroRect;
     }
-  first = [self extraCellAtIndex:0];
+  first = [_extras count] ? [self extraCellAtIndex:0]
+    : [self recyclerTileRect];
   if (_horizontal)
     {
       return NSMakeRect(NSMinX(first) - half, NSMinY(first) + inset,

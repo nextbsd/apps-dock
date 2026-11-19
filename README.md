@@ -38,13 +38,24 @@ apps-windowserver's README). It's built when pkg-config finds
   attention requests (`-requestUserAttention:`) reach the Dock. Asked where
   to put an app icon window or miniwindow, the Dock answers with the
   window's own frame.
-- **Layout:** the Dock fills one whole screen edge, the right edge unless
-  set otherwise (see "Placement" below). Along it, top to bottom in a
-  column or left to right in a row: the Workspace tile, pinned apps,
-  running apps, minimized windows (each section set off by a separator,
-  turned across a row), the status area for Dock extras, a flexible gap
-  that takes drops, and the Recycler last, at the bottom of a column or
-  the right end of a row. When the column or row is full, tiles shrink.
+- **Layout:** the Dock is a column or row on one screen edge, the right
+  edge unless set otherwise (see "Placement" below). Along it, top to
+  bottom in a column or left to right in a row: the Workspace tile, pinned
+  apps, running apps, minimized windows (each section set off by a
+  separator, turned across a row), a flexible gap that takes drops, the
+  status area for Dock extras, and the Recycler last, at the bottom of a
+  column or the right end of a row. When the column or row is full, tiles
+  shrink.
+- **Position on screen** (`DockAlignment`, in the Dock's **Settings → Dock
+  → Alignment**): **Centered** (`center`, the default, as on
+  macOS) puts the Dock in the middle of its edge, as long as what's in it,
+  so it grows and shrinks as apps launch and quit, extras come and go and
+  a drop slot opens; a separator sets the extras and the Recycler off from
+  the apps, and the flexible gap is just that. **Start of Edge** (`start`)
+  fills the whole edge from its start, as before. Either way the strip the
+  Dock reports to WindowServer is its thickness along the whole edge.
+  `defaults write DockWM DockAlignment start` and a restart of the Dock
+  work too.
 - **Placement:** the desktop setting `NBDockPosition` (`right`, `left`,
   `top` or `bottom`) picks the edge, looked up as nextbsd-theme's
   `NBDesktopSettings.h` does, for the window mode in effect

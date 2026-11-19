@@ -86,6 +86,11 @@
 - (CGFloat) activeDockGap;
 - (CGFloat) activeDockWindowWidth;
 - (NSUInteger) dockSectionGapCount;
+/* On WindowServer, centred (DockAlignmentCenter): the Dock's window is
+ * as long as what's in it. */
+- (BOOL) dockSizesToContent;
+- (NSUInteger) dockCellCount;
+- (CGFloat) dockContentLength;
 - (CGFloat) activeDockCellSize;
 - (void) applyDockCellSizeToView;
 - (void) loadPersistedApplications;
@@ -198,6 +203,8 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (void) showSettingsPanel: (id)sender;
 - (void) showSettingsForDockItem: (DockItem *)item;
 - (void) applyDockPlacement;
+/* The Dock's window and view take the frame for its placement. */
+- (void) applyDockWindowFrame;
 - (void) screenParametersDidChange: (NSNotification *)notification;
 - (void) reportDockEdge;
 - (void) updateDockBackground;

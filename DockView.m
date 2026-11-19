@@ -178,8 +178,21 @@
 
 - (void) setNeedsDisplay: (BOOL)flag
 {
+  BOOL dragging = _draggingPaths || _draggedItemIndex != NSNotFound;
+  BOOL reserves;
+
   [super setNeedsDisplay:flag];
-  if (flag) [self syncIconWindows];
+  if (!flag) return;
+  /* A drop slot takes a cell, which a Dock sized to its contents has
+   * to make room for: its delegate gives it another frame. */
+  reserves = _sizesToContent && dragging
+    && (_reservesDropSlot || [self openDropSlotIndex] != NSNotFound);
+  if (reserves != _reservesDropSlot)
+    {
+      _reservesDropSlot = reserves;
+      [_delegate dockViewDidChangeContentLength:self];
+    }
+  [self syncIconWindows];
 }
 
 - (void) setDelegate: (id)delegate
@@ -220,6 +233,25 @@
 - (BOOL) fillsColumn
 {
   return _fillsColumn;
+}
+
+- (void) setSizesToContent: (BOOL)sizesToContent
+{
+  if (_sizesToContent != sizesToContent)
+    {
+      _sizesToContent = sizesToContent;
+      [self setNeedsDisplay:YES];
+    }
+}
+
+- (BOOL) sizesToContent
+{
+  return _sizesToContent;
+}
+
+- (BOOL) reservesDropSlot
+{
+  return _reservesDropSlot;
 }
 
 - (void) setPinnedItemCount: (NSUInteger)count

@@ -416,6 +416,37 @@ modeValue(id modes, NSString *mode, NSString *key)
   NS_ENDHANDLER
 }
 
+/*
+ * Centred, as on macOS, unless DockAlignment says "start" (or 1), so
+ * that `defaults write DockWM DockAlignment start` works too: the Dock
+ * then fills its edge from the start, as it did before.
+ */
+- (DockAlignment) savedDockAlignment
+{
+  id value = [[NSUserDefaults standardUserDefaults]
+	       objectForKey:@"DockAlignment"];
+
+  if ([value isKindOfClass:[NSString class]]
+      && [[value lowercaseString] isEqualToString:@"start"])
+    {
+      return DockAlignmentStart;
+    }
+  if ([value respondsToSelector:@selector(integerValue)]
+      && [value integerValue] == DockAlignmentStart)
+    {
+      return DockAlignmentStart;
+    }
+  return DockAlignmentCenter;
+}
+
+- (void) saveDockAlignment: (DockAlignment)alignment
+{
+  [[NSUserDefaults standardUserDefaults]
+    setObject:alignment == DockAlignmentStart ? @"start" : @"center"
+       forKey:@"DockAlignment"];
+  [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
 - (NSColor *) savedBackgroundColor
 {
   id savedColor = [[NSUserDefaults standardUserDefaults]

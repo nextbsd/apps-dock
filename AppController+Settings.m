@@ -80,6 +80,11 @@
   return _dockPlacement;
 }
 
+- (DockAlignment) settingsControllerDockAlignment: (SettingsController *)controller
+{
+  return _dockAlignment;
+}
+
 - (NSString *) settingsControllerCurrentDockCellSizeTitle: (SettingsController *)controller
 {
   return [DockPreferences largerCellSizeTitle];
@@ -288,6 +293,14 @@ itemWigglesOnAttentionRequest: (DockItem *)item
       [_preferences saveDockPlacement:placement];
       [_preferences saveDockPosition:placement];
     }
+  [self applyDockPlacement];
+}
+
+- (void) settingsController: (SettingsController *)controller
+     didChangeDockAlignment: (DockAlignment)alignment
+{
+  _dockAlignment = alignment;
+  [_preferences saveDockAlignment:alignment];
   [self applyDockPlacement];
 }
 

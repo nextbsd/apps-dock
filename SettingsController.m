@@ -80,6 +80,7 @@
   DESTROY(_transparencyLabel);
   DESTROY(_backgroundColorWell);
   DESTROY(_placementPopup);
+  DESTROY(_alignmentPopup);
   DESTROY(_panel);
   DEALLOC;
 }

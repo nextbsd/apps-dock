@@ -26,6 +26,7 @@
 
 @protocol SettingsControllerDelegate
 - (DockPlacement) settingsControllerDockPlacement: (SettingsController *)controller;
+- (DockAlignment) settingsControllerDockAlignment: (SettingsController *)controller;
 - (NSString *) settingsControllerCurrentDockCellSizeTitle: (SettingsController *)controller;
 - (NSInteger) settingsControllerDockCellSizeMode: (SettingsController *)controller;
 - (DockRunningIndicatorMode) settingsControllerRunningIndicatorMode: (SettingsController *)controller;
@@ -77,6 +78,8 @@ itemWigglesOnAttentionRequest: (DockItem *)item;
        canDeleteItemAtIndex: (NSUInteger)index;
 - (void) settingsController: (SettingsController *)controller
      didChangeDockPlacement: (DockPlacement)placement;
+- (void) settingsController: (SettingsController *)controller
+     didChangeDockAlignment: (DockAlignment)alignment;
 - (void) settingsController: (SettingsController *)controller
    didChangeBackgroundColor: (NSColor *)color;
 - (void) settingsController: (SettingsController *)controller
@@ -144,6 +147,7 @@ didChangeItemWigglesOnAttentionRequest: (BOOL)wiggles
   id<SettingsControllerDelegate> _delegate;
   NSPanel *_panel;
   NSPopUpButton *_placementPopup;
+  NSPopUpButton *_alignmentPopup;
   NSColorWell *_backgroundColorWell;
   NSTextField *_transparencyLabel;
   NSSlider *_transparencySlider;

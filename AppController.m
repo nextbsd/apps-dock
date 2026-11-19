@@ -40,6 +40,7 @@
   _dockPlacement = [WSDockManager isWindowServerSession]
     ? [_preferences savedWindowServerDockPlacement]
     : [self savedDockPlacement];
+  _dockAlignment = [_preferences savedDockAlignment];
   _dockCellSizeMode = [self savedDockCellSizeMode];
   _runningIndicatorMode = [self savedRunningIndicatorMode];
   _backgroundColor = RETAIN([self savedBackgroundColor]);
@@ -76,6 +77,7 @@
                                                          NSHeight(frame))];
   [_dockView setDelegate:self];
   [_dockView setFillsColumn:[WSDockManager isWindowServerSession]];
+  [_dockView setSizesToContent:[self dockSizesToContent]];
   [_dockView setHorizontal:[DockPreferences placementIsHorizontal:_dockPlacement]];
   [self applyDockCellSizeToView];
   [_dockView setBackgroundColor:_backgroundColor];
