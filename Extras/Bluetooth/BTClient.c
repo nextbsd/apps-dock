@@ -5,9 +5,9 @@
  * Built without GNUstep's headers: see the GNUmakefile.
  *
  * Copied unchanged (but for the dynamic store's name) from Bluetooth.app
- * (nextbsd/apps-settings Bluetooth/BTClient.c, 49499c3): the Bluetooth
- * Dock extra talks to bluetoothd the same way. Copy it again when the
- * app's grows.
+ * (nextbsd/apps-settings Bluetooth/BTClient.c, with its battery change):
+ * the Bluetooth Dock extra talks to bluetoothd the same way. Copy it
+ * again when the app's grows.
  */
 
 #include "bluetooth_mig_types.h"
@@ -55,6 +55,7 @@ static const char *const BTNotifyNames[] = {
   "org.nextbsd.bluetooth.device",
   "org.nextbsd.bluetooth.firmware",
   "org.nextbsd.bluetooth.audio",
+  "org.nextbsd.bluetooth.battery",
 };
 #define BTNotifyCount (sizeof (BTNotifyNames) / sizeof (BTNotifyNames[0]))
 
@@ -66,6 +67,7 @@ struct BTClient
   int tokens[BTNotifyCount];
   SCDynamicStoreRef store;
   CFDictionaryRef paired;	/* PairedDevices, read with the paired list */
+  int noBattery;		/* this bluetoothd has no bt_device_battery */
 };
 
 static void
@@ -94,7 +96,10 @@ BTService (BTClient *c)
     return c->service;
   if (bootstrap_look_up (bootstrap_port, BTServiceName, &port)
       == KERN_SUCCESS)
-    c->service = port;
+    {
+      c->service = port;
+      c->noBattery = 0;		/* a new bluetoothd may have it */
+    }
   return c->service;
 }
 
@@ -364,6 +369,38 @@ BTClientPairedCount (BTClient *c, int *count)
   return (int) st;
 }
 
+/*
+ * A connected device's battery, -1 unknown. bt_device_battery is newer
+ * than the rest: a bluetoothd without it never answers (bluetooth.defs
+ * gives the call BT_RPC_WAIT_MS) or answers MIG_BAD_ID, and isn't asked
+ * again until it is looked up anew.
+ */
+static int
+BTDeviceBattery (BTClient *c, const char *address)
+{
+  BTAddressString addr;
+  mach_port_t svc;
+  bt_status_t st;
+  kern_return_t kr;
+  int percent = -1, source;
+
+  if (c->noBattery || (svc = BTService (c)) == MACH_PORT_NULL)
+    return -1;
+  BTCopyAddress (addr, address);
+  kr = bt_device_battery (svc, addr, &percent, &source, &st);
+  if (kr == MACH_RCV_TIMED_OUT || kr == MIG_BAD_ID)
+    {
+      c->noBattery = 1;
+      return -1;
+    }
+  if (kr != KERN_SUCCESS)
+    {
+      BTLost (c);
+      return -1;
+    }
+  return st == bt_status_success_e ? percent : -1;
+}
+
 int
 BTClientPairedEntry (BTClient *c, int index, BTClientDevice *d)
 {
@@ -377,7 +414,10 @@ BTClientPairedEntry (BTClient *c, int index, BTClientDevice *d)
   d->state = (int) state;
   d->paired = 1;
   d->rssi = 127;
+  d->battery = -1;
   BTFillFromStore (c, d);
+  if (st == bt_status_success_e && d->state == BTDeviceConnected)
+    d->battery = BTDeviceBattery (c, d->address);
   return (int) st;
 }
 
@@ -411,6 +451,7 @@ BTClientScanEntry (BTClient *c, int index, BTClientDevice *d)
   bt_status_t st;
 
   memset (d, 0, sizeof (*d));
+  d->battery = -1;
   memset (node, 0, sizeof (node));
   BTCall (c, bt_scan_entry (svc, node, index, d->address, d->name,
                             &d->classOfDevice, &d->rssi, &d->transports,

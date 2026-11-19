@@ -23,7 +23,10 @@
  * device is connected. A click shows a menu to turn Bluetooth on or off,
  * the paired devices (choose one to connect or disconnect it) and
  * "Open Bluetooth Settings...", which opens Bluetooth.app for the rest:
- * pairing, nearby devices, headset audio.
+ * pairing, nearby devices, headset audio. A connected device that
+ * reports its battery (a headset over hands-free, an LE mouse or
+ * keyboard) shows it after its name with a small gauge, red at 20% or
+ * less (BTBatteryLow).
  *
  * It talks to bluetoothd as Bluetooth.app does (BTClient.c, its MIG
  * interface org.nextbsd.bluetooth). Changes come as bluetoothd's
@@ -56,7 +59,8 @@
   BOOL _available;
   BOOL _powered;
   NSString *_adapterName;
-  /* Paired devices: dictionaries of address, name, state (NSNumber). */
+  /* Paired devices: dictionaries of address, name, state and battery
+   * (NSNumber; percent, -1 unknown). */
   NSArray *_devices;
 }
 - (void) reload;
@@ -216,6 +220,8 @@ DockBluetoothStatusText(int status)
 				   : [NSString stringWithUTF8String:info.address],
 				   @"name",
 				   [NSNumber numberWithInt:info.state], @"state",
+				   [NSNumber numberWithInt:info.battery],
+				   @"battery",
 				   nil]];
 	}
     }
@@ -243,6 +249,55 @@ DockBluetoothStatusText(int status)
       [_host dockExtraAvailabilityDidChange:self];
     }
   [_host dockExtraNeedsDisplay:self];
+}
+
+/* A connected device's battery, -1 unknown. */
+static int
+DockBluetoothBattery(NSDictionary *device)
+{
+  if ([[device objectForKey:@"state"] intValue] != BTDeviceConnected)
+    {
+      return -1;
+    }
+  return [[device objectForKey:@"battery"] intValue];
+}
+
+static BOOL
+DockBluetoothBatteryLow(NSDictionary *device)
+{
+  int battery = DockBluetoothBattery(device);
+
+  return battery >= 0 && battery <= BTBatteryLow;
+}
+
+/* A small battery for a menu item: an outline in the menu's text color,
+ * filled to the level, red when low. */
+static NSImage *
+DockBluetoothGauge(int percent)
+{
+  NSSize size = NSMakeSize(22, 11);
+  NSImage *image = AUTORELEASE([[NSImage alloc] initWithSize:size]);
+  NSRect body = NSMakeRect(0.5, 1.5, 18, 8);
+  NSRect level = NSInsetRect(body, 2, 2);
+  NSColor *color = [NSColor controlTextColor];
+  NSBezierPath *outline;
+
+  [image lockFocus];
+  outline = [NSBezierPath bezierPathWithRoundedRect:body xRadius:2 yRadius:2];
+  [outline setLineWidth:1.0];
+  [color set];
+  [outline stroke];
+  NSRectFill(NSMakeRect(NSMaxX(body) + 1, NSMidY(body) - 2, 1.5, 4));
+  level.size.width = MAX(1.0, floor(NSWidth(level) * MIN(percent, 100)
+				    / 100.0));
+  if (percent <= BTBatteryLow)
+    {
+      [[NSColor colorWithCalibratedRed:1.0 green:0.23 blue:0.19 alpha:1.0]
+	set];
+    }
+  NSRectFill(level);
+  [image unlockFocus];
+  return image;
 }
 
 - (NSArray *) connectedDevices
@@ -324,8 +379,12 @@ DockBluetoothStatusText(int status)
     }
   if ([connected count] == 1)
     {
-      return [NSString stringWithFormat:@"Bluetooth: connected to %@",
-		       [[connected objectAtIndex:0] objectForKey:@"name"]];
+      NSDictionary *device = [connected objectAtIndex:0];
+
+      return [NSString stringWithFormat:@"Bluetooth: connected to %@%@",
+		       [device objectForKey:@"name"],
+		       DockBluetoothBatteryLow(device)
+		       ? @" (battery low)" : @""];
     }
   if ([connected count] > 1)
     {
@@ -365,6 +424,7 @@ DockBluetoothStatusText(int status)
 	{
 	  NSDictionary *device = [_devices objectAtIndex:i];
 	  int state = [[device objectForKey:@"state"] intValue];
+	  int battery = DockBluetoothBattery(device);
 	  NSString *title = [device objectForKey:@"name"];
 
 	  if (state == BTDeviceConnecting)
@@ -375,12 +435,23 @@ DockBluetoothStatusText(int status)
 	    {
 	      title = [title stringByAppendingString:@"  (pairing…)"];
 	    }
+	  else if (battery >= 0)
+	    {
+	      title = [title stringByAppendingFormat:
+			       DockBluetoothBatteryLow(device)
+			       ? @" — %d%%, battery low" : @" — %d%%",
+			     battery];
+	    }
 	  item = (NSMenuItem *)[menu addItemWithTitle:title
 					       action:@selector(toggleDevice:)
 					keyEquivalent:@""];
 	  [item setTarget:self];
 	  [item setRepresentedObject:device];
 	  [item setState:state == BTDeviceConnected ? NSOnState : NSOffState];
+	  if (battery >= 0)
+	    {
+	      [item setImage:DockBluetoothGauge(battery)];
+	    }
 	  [item setToolTip:state == BTDeviceConnected
 		? @"Choose to disconnect" : @"Choose to connect"];
 	  [item setEnabled:state == BTDeviceConnected

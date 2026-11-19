@@ -10,6 +10,9 @@
  *     the way bluetooth(8) makes them. Each returns a bt_status_t value
  *     (BTStatus*), or BTStatusRPCFailed when bluetoothd can't be reached;
  *     the next call looks it up again, so a restarted bluetoothd is found.
+ *   - A connected paired device's battery (bt_device_battery) comes with
+ *     its entry; a bluetoothd too old to have it gives -1, after one wait
+ *     of at most BT_RPC_WAIT_MS.
  *   - Live updates: every org.nextbsd.bluetooth.* notification and every
  *     change under State:/Bluetooth in the dynamic store writes a byte to
  *     the wake descriptor given to BTClientOpen. They arrive on dispatch
@@ -57,6 +60,9 @@
 #define BTAdapterOff 4
 #define BTAdapterError 5
 
+/* A device's battery at or under this is low (percent), as on macOS. */
+#define BTBatteryLow 20
+
 /* bt_audio_route (31085): stereo, or the headset's microphone open. */
 #define BTRouteA2DP 1
 #define BTRouteHFP 2
@@ -98,6 +104,7 @@ typedef struct
   int audio;			/* PairedDevices/<addr>/Audio, default on */
   int rssi;			/* dBm, 127 unknown */
   int age;			/* seconds since a scan saw it */
+  int battery;			/* percent while connected, -1 unknown */
 } BTClientDevice;
 
 typedef struct
