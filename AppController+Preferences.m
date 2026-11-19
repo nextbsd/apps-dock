@@ -40,6 +40,11 @@
   id key = [info objectForKey:@"key"];
   DockPlacement placement;
 
+  [NSObject cancelPreviousPerformRequestsWithTarget:self
+					   selector:@selector(updateDockExtrasPlace)
+					     object:nil];
+  [self performSelector:@selector(updateDockExtrasPlace) withObject:nil
+	     afterDelay:0.0];
   if (![key isEqual:DockPositionDefaultsKey]
       && ![key isEqual:DockWindowModeDefaultsKey]
       && ![key isEqual:DockModeSettingsKey])

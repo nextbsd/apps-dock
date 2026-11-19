@@ -124,6 +124,34 @@ an extra moves it within the status area; it can't be dragged out of it
 or onto the Recycler. The order is saved as `DockExtrasOrder`. Each extra
 can be hidden in **Settings → Extras** (`DockExtrasHidden`).
 
+**In the Mac menu style** (`NSMacintoshInterfaceStyle`, the menu bar along
+the top) the extras leave the Dock and go into the menu bar, as macOS's
+ControlCenter puts its items there (#41): each one is its own
+`NSStatusItem` (public `NSStatusBar` API; on WindowServer the backend makes
+it a status item slot, nextbsd/libs-back#41, apps-windowserver#97), drawn in
+the bar's text colour, left to right Input, Bluetooth, Wi-Fi, Sound,
+Battery, then the clock as text ("Thu 19 Nov 00:18", following its 24-hour,
+seconds and date settings) at the right end. A click drops the extra's menu
+below it, the one its tile's right-click shows, ending with "Open …
+Settings"; panels it opens (the calendar, a Wi-Fi password) go below the bar
+at its right end. Switching the menu style in Workspace Preferences moves
+them between the Dock and the menu bar at once, and a centred Dock shrinks
+or grows with them. Hiding an extra (**Settings → Extras**, or a settings
+app's "Show … in Dock") hides it from the menu bar.
+
+The order comes from WindowServer's status item priorities, larger further
+right: apps' items 0, the system's 1000, the clock 2000. Each extra takes
+1000 plus its `DockExtraMenuBarPosition` (Info.plist; else its
+`DockExtraDefaultPosition`), so the extras keep their order whichever one
+comes or goes, and the extra with `DockExtraMenuBarPriority = clock` takes
+2000. The priority goes to the backend's documented
+`-[NSStatusItem setStatusItemPriority:]` when it has one. An extra draws
+itself there with the optional `-statusItemTitle` (words) or
+`-drawStatusItemInRect:color:` and `-statusItemWidthForHeight:` (a glyph);
+otherwise the Dock draws its tile in one colour, without the plate. A glyph
+also gets an alternate image in the highlighted text colour, for while its
+menu is open.
+
 As on macOS, an extra appears by itself only where its hardware is (a
 battery, a Wi-Fi radio, a Bluetooth controller, a sound device, two
 keyboard layouts or more); the clock is always there. Its menu gives the

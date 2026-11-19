@@ -44,6 +44,8 @@
 @interface AppController (Extras) <DockExtrasControllerDelegate>
 - (void) loadDockExtras;
 - (NSUInteger) dockExtraCount;
+- (BOOL) dockExtrasGoInMenuBar;
+- (void) updateDockExtrasPlace;
 - (NSArray *) dockExtrasDescriptions;
 - (void) setDockExtraHidden: (BOOL)hidden forIdentifier: (NSString *)identifier;
 @end

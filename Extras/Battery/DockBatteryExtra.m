@@ -280,6 +280,95 @@ DockBatteryDuration(int minutes)
     }
 }
 
+/* In the menu bar: the percentage when it's on, then the battery,
+ * in the bar's colour; the charge level is fainter while charging, so
+ * that the bolt shows on it. */
+- (NSDictionary *) statusItemTextAttributesForHeight: (CGFloat)height
+					       color: (NSColor *)color
+{
+  return [NSDictionary dictionaryWithObjectsAndKeys:
+			 [NSFont systemFontOfSize:floor(height * 0.72)],
+		       NSFontAttributeName, color,
+		       NSForegroundColorAttributeName, nil];
+}
+
+- (NSString *) statusItemPercentage
+{
+  return [[NSUserDefaults standardUserDefaults] boolForKey:ShowsPercentageKey]
+    ? [NSString stringWithFormat:@"%d%%", _info.percent] : nil;
+}
+
+- (CGFloat) statusItemWidthForHeight: (CGFloat)height
+{
+  NSString *text = [self statusItemPercentage];
+  CGFloat width = ceil(height * 1.6);
+
+  if (text)
+    {
+      width += ceil([text sizeWithAttributes:
+			    [self statusItemTextAttributesForHeight:height
+							      color:[NSColor whiteColor]]].width)
+	+ floor(height * 0.25);
+    }
+  return width;
+}
+
+- (void) drawStatusItemInRect: (NSRect)rect color: (NSColor *)color
+{
+  CGFloat h = NSHeight(rect);
+  NSString *text = [self statusItemPercentage];
+  NSRect body = NSMakeRect(NSMaxX(rect) - ceil(h * 1.6), NSMidY(rect) - h * 0.28,
+			   ceil(h * 1.6) - MAX(2.0, h * 0.12), h * 0.56);
+  NSRect nub;
+  NSRect level;
+  NSBezierPath *outline;
+  BOOL charging = _info.charging || _info.onAC;
+
+  if (text)
+    {
+      NSDictionary *attributes =
+	[self statusItemTextAttributesForHeight:h color:color];
+      NSSize size = [text sizeWithAttributes:attributes];
+
+      [text drawAtPoint:NSMakePoint(NSMinX(rect),
+				    floor(NSMidY(rect) - size.height / 2.0))
+	 withAttributes:attributes];
+    }
+  body = NSIntegralRect(body);
+  nub = NSMakeRect(NSMaxX(body) + 1.0, NSMidY(body) - h * 0.1,
+		   MAX(1.5, h * 0.08), h * 0.2);
+  outline = [NSBezierPath bezierPathWithRoundedRect:NSInsetRect(body, 0.5, 0.5)
+					    xRadius:h * 0.12
+					    yRadius:h * 0.12];
+  [outline setLineWidth:1.0];
+  [[color colorWithAlphaComponent:[color alphaComponent] * 0.6] set];
+  [outline stroke];
+  [[NSBezierPath bezierPathWithRoundedRect:nub xRadius:1.0 yRadius:1.0] fill];
+  level = NSInsetRect(body, 2.0, 2.0);
+  level.size.width = floor(NSWidth(level) * _info.percent / 100.0);
+  [(charging ? [color colorWithAlphaComponent:[color alphaComponent] * 0.4]
+    : color) set];
+  [[NSBezierPath bezierPathWithRoundedRect:level xRadius:h * 0.06
+				   yRadius:h * 0.06] fill];
+  if (charging)
+    {
+      CGFloat bh = NSHeight(body) * 1.05;
+      NSBezierPath *bolt = [NSBezierPath bezierPath];
+      CGFloat x = NSMidX(body) - bh * 0.35, y = NSMidY(body) - bh / 2.0;
+      CGFloat w = bh * 0.7;
+
+      [bolt moveToPoint:NSMakePoint(x + w * 0.58, y + bh)];
+      [bolt lineToPoint:NSMakePoint(x + w * 0.18, y + bh * 0.42)];
+      [bolt lineToPoint:NSMakePoint(x + w * 0.46, y + bh * 0.42)];
+      [bolt lineToPoint:NSMakePoint(x + w * 0.38, y)];
+      [bolt lineToPoint:NSMakePoint(x + w * 0.82, y + bh * 0.60)];
+      [bolt lineToPoint:NSMakePoint(x + w * 0.54, y + bh * 0.60)];
+      [bolt closePath];
+      [color set];
+      [bolt fill];
+    }
+}
+
 - (NSString *) stateString
 {
   if (_info.charged || (_info.onAC && !_info.charging && _info.percent >= 99))

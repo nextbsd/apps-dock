@@ -18,6 +18,7 @@ AppController+X11Delegate.m \
 AppController+WindowServer.m \
 AppController+Extras.m \
 DockExtrasController.m \
+DockExtrasController+MenuBar.m \
 SettingsController+Panel.m \
 SettingsController+Applications.m \
 SettingsController+Updates.m \

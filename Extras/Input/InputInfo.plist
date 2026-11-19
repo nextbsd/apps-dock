@@ -2,4 +2,5 @@
   CFBundleIdentifier = "org.nextbsd.dockextra.input";
   CFBundleName = "Input";
   DockExtraDefaultPosition = 5;
+  DockExtraMenuBarPosition = 5;
 }

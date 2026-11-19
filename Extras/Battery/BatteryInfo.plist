@@ -2,4 +2,5 @@
   CFBundleIdentifier = "org.nextbsd.dockextra.battery";
   CFBundleName = "Battery";
   DockExtraDefaultPosition = 20;
+  DockExtraMenuBarPosition = 25;
 }

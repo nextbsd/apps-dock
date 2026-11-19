@@ -522,6 +522,27 @@ DockClockDrawHand(NSPoint center, CGFloat angle, CGFloat length,
 	   stringByReplacingOccurrencesOfString:@"  " withString:@" "];
 }
 
+/* In the menu bar, as macOS writes it: "Thu 19 Nov 00:18", the date
+ * only when Show Date is on, AM or PM on a 12-hour clock. */
+- (NSString *) statusItemTitle
+{
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSCalendarDate *now = [NSCalendarDate calendarDate];
+  NSString *day = [now descriptionWithCalendarFormat:
+			 [defaults boolForKey:ShowsDateKey]
+		       ? @"%a %e %b" : @"%a"];
+  NSString *time = [self timeStringWithSeconds:
+			   [defaults boolForKey:ShowsSecondsKey]];
+
+  if (![defaults boolForKey:TwentyFourHourKey])
+    {
+      time = [NSString stringWithFormat:@"%@ %@", time,
+		       [now descriptionWithCalendarFormat:@"%p"]];
+    }
+  return [[NSString stringWithFormat:@"%@ %@", day, time]
+	   stringByReplacingOccurrencesOfString:@"  " withString:@" "];
+}
+
 - (void) toggleCalendar
 {
   if ([_calendar isVisible])
