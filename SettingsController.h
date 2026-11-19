@@ -27,6 +27,9 @@
 @protocol SettingsControllerDelegate
 - (DockPlacement) settingsControllerDockPlacement: (SettingsController *)controller;
 - (DockAlignment) settingsControllerDockAlignment: (SettingsController *)controller;
+/* NO in the NeXT menu style, where the Dock always runs the length of
+ * its edge. */
+- (BOOL) settingsControllerDockAlignmentApplies: (SettingsController *)controller;
 - (NSString *) settingsControllerCurrentDockCellSizeTitle: (SettingsController *)controller;
 - (NSInteger) settingsControllerDockCellSizeMode: (SettingsController *)controller;
 - (DockRunningIndicatorMode) settingsControllerRunningIndicatorMode: (SettingsController *)controller;

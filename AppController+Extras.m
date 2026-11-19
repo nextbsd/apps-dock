@@ -22,11 +22,14 @@
  * loads them, and the ones with a tile go into DockView's status area.
  * Only a Dock that fills its screen edge (on NextBSD's WindowServer) has
  * a status area, so extras are loaded there only. Nothing here assumes
- * which edge that is.
+ * which edge that is. In the Mac menu style they go into the menu bar
+ * instead (DockExtrasController+MenuBar.m), and back when the style
+ * changes.
  */
 
 #import "AppControllerPrivate.h"
 #import "DockExtrasSettings.h"
+#import <AppKit/NSInterfaceStyle.h>
 
 @implementation AppController (Extras)
 
@@ -37,6 +40,7 @@
       return;
     }
   _extrasController = [[DockExtrasController alloc] initWithDelegate:self];
+  [_extrasController setShowsExtrasInMenuBar:[self dockExtrasGoInMenuBar]];
   [_extrasController loadExtras];
 
   /* The settings apps' "Show ... in Dock" checkboxes ask the Dock to
@@ -46,6 +50,27 @@
        selector:@selector(setExtraHiddenRequested:)
 	   name:DockSetExtraHiddenNotification
 	 object:nil];
+}
+
+/* The Mac menu style, on a backend that has status items. */
+- (BOOL) dockExtrasGoInMenuBar
+{
+  return [self dockIsMacMenuStyle]
+    && [NSStatusBar systemStatusBar] != nil;
+}
+
+/* The menu style may have changed (Workspace Preferences): the extras
+ * move to or from the menu bar, and the Dock is centred (Mac) or runs
+ * the length of its edge again (NeXT). Asked once the backend has
+ * followed the change, on the next pass of the run loop. */
+- (void) updateDockExtrasPlace
+{
+  [_extrasController setShowsExtrasInMenuBar:[self dockExtrasGoInMenuBar]];
+  if ([_dockView sizesToContent] != [self dockSizesToContent])
+    {
+      [self applyDockPlacement];
+    }
+  [_settingsController updateControls];
 }
 
 - (void) setExtraHiddenRequested: (NSNotification *)notification

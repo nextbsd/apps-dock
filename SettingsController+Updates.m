@@ -118,6 +118,11 @@
 		     (NSInteger)[_delegate settingsControllerDockPlacement:self]];
   [_alignmentPopup selectItemWithTag:
 		     (NSInteger)[_delegate settingsControllerDockAlignment:self]];
+  [_alignmentPopup setEnabled:
+		     [_delegate settingsControllerDockAlignmentApplies:self]];
+  [_alignmentPopup setToolTip:
+		     [_alignmentPopup isEnabled] ? nil
+		     : @"In the NeXT menu style the Dock runs the length of its edge."];
 
   cellSizeMode = [_delegate settingsControllerDockCellSizeMode:self];
   [_currentCellSizeButton setTitle:

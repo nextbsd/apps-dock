@@ -58,6 +58,10 @@
    * position (the default) and, once loaded, instance. */
   NSMutableArray *_records;
   NSArray *_shownExtras;
+  /* The Mac menu style: the extras are menu bar status items instead
+   * (identifier -> NSStatusItem), DockExtrasController+MenuBar.m. */
+  BOOL _inMenuBar;
+  NSMutableDictionary *_statusItems;
 }
 
 + (NSArray *) searchPaths;
@@ -68,8 +72,13 @@
 /* Release every extra (the Dock is quitting). */
 - (void) unloadExtras;
 
-/* The extras with a tile, in order: loaded, not hidden, available. */
+/* The extras with a tile, in order: loaded, not hidden, available, and
+ * none while they are in the menu bar. */
 - (NSArray *) shownExtras;
+/* Show the extras as status items in the menu bar (the Mac menu style)
+ * or in the Dock. */
+- (void) setShowsExtrasInMenuBar: (BOOL)inMenuBar;
+- (BOOL) showsExtrasInMenuBar;
 /* The user dragged the shown extras into this order. Hidden and
  * unavailable extras keep their places among them. */
 - (void) setOrderOfShownExtras: (NSArray *)extras;
@@ -81,4 +90,17 @@
  * org.nextbsd.Dock.ExtrasChanged. */
 - (void) setHidden: (BOOL)hidden forExtraWithIdentifier: (NSString *)identifier;
 
+@end
+
+/* The extras in the menu bar, as macOS's ControlCenter shows its own:
+ * each one an NSStatusItem (public NSStatusBar API only). */
+@interface DockExtrasController (MenuBar)
+/* Make, update and remove the status items, for these extras. */
+- (void) syncStatusItemsWithExtras: (NSArray *)extras;
+- (void) removeStatusItems;
+/* Draw the extra's status item again. */
+- (void) updateStatusItemForExtra: (id)extra;
+/* Where a panel of this size goes for an extra in the menu bar: below
+ * the bar, at its right end. */
+- (NSRect) menuBarPanelFrameForSize: (NSSize)size;
 @end

@@ -73,6 +73,7 @@
       _delegate = delegate;
       _records = [NSMutableArray new];
       _shownExtras = [NSArray new];
+      _statusItems = [NSMutableDictionary new];
     }
   return self;
 }
@@ -82,6 +83,7 @@
   [self unloadExtras];
   DESTROY(_records);
   DESTROY(_shownExtras);
+  DESTROY(_statusItems);
   DEALLOC;
 }
 
@@ -167,12 +169,32 @@
     {
       [self unloadRecord:[_records objectAtIndex:i]];
     }
+  [self removeStatusItems];
   ASSIGN(_shownExtras, [NSArray array]);
 }
 
 - (NSArray *) shownExtras
 {
   return _shownExtras;
+}
+
+- (void) setShowsExtrasInMenuBar: (BOOL)inMenuBar
+{
+  if (_inMenuBar == inMenuBar)
+    {
+      return;
+    }
+  _inMenuBar = inMenuBar;
+  if (!inMenuBar)
+    {
+      [self removeStatusItems];
+    }
+  [self updateShownExtras];
+}
+
+- (BOOL) showsExtrasInMenuBar
+{
+  return _inMenuBar;
 }
 
 - (void) setOrderOfShownExtras: (NSArray *)extras
@@ -292,7 +314,11 @@
 
 - (void) dockExtraNeedsDisplay: (id)extra
 {
-  if ([_shownExtras indexOfObjectIdenticalTo:extra] != NSNotFound)
+  if (_inMenuBar)
+    {
+      [self updateStatusItemForExtra:extra];
+    }
+  else if ([_shownExtras indexOfObjectIdenticalTo:extra] != NSNotFound)
     {
       [_delegate dockExtrasController:self extraNeedsDisplay:extra];
     }
@@ -314,6 +340,10 @@
 
 - (NSRect) dockExtra: (id)extra panelFrameForSize: (NSSize)size
 {
+  if (_inMenuBar)
+    {
+      return [self menuBarPanelFrameForSize:size];
+    }
   return [_delegate dockExtrasController:self panelFrameForExtra:extra
 				    size:size];
 }
@@ -589,6 +619,12 @@
 	{
 	  [shown addObject:extra];
 	}
+    }
+  /* In the menu bar they are status items, and the Dock has none. */
+  if (_inMenuBar)
+    {
+      [self syncStatusItemsWithExtras:shown];
+      [shown removeAllObjects];
     }
   if (![shown isEqualToArray:_shownExtras])
     {

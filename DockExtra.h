@@ -36,6 +36,11 @@
  *   CFBundleName               the name shown in the Dock's settings
  *   DockExtraDefaultPosition   a number: where it goes, top to bottom,
  *                              until the user drags it elsewhere
+ *   DockExtraMenuBarPosition   a number below 1000: where it goes in the
+ *                              menu bar, left to right (else the
+ *                              DockExtraDefaultPosition)
+ *   DockExtraMenuBarPriority   "clock" for the clock, rightmost in the
+ *                              menu bar; else "system"
  *
  * The status area runs along the Dock: down a column on a side edge,
  * across a row on the top or bottom edge. Tiles are square, so an extra
@@ -50,6 +55,17 @@
  * within the status area; they can't be dragged out or into the
  * Recycler, and each one can be hidden from the Dock's settings, or from
  * a settings app's "Show ... in Dock" checkbox (DockExtrasSettings.h).
+ *
+ * In the Mac menu style (NSMacintoshInterfaceStyle, the menu bar along
+ * the top of the screen) the extras leave the Dock and go into the menu
+ * bar, as macOS's ControlCenter puts its items there: each one is its
+ * own NSStatusItem at the bar's right end, left to right by
+ * DockExtraMenuBarPosition, the clock rightmost, drawn in the bar's text
+ * colour without a plate (-statusItemTitle, -drawStatusItemInRect:color:
+ * below). A click drops its menu below it: -menuForEvent: with a nil
+ * event, which answers the menu rather than a panel. Switching the
+ * style moves them back and forth at once. "Show in Dock" then means
+ * "show in the menu bar".
  *
  * Like a macOS menu extra, an extra's menu gives quick controls and ends
  * with an "Open X Settings..." item for the settings app that has the
@@ -105,9 +121,25 @@
 /* The tooltip beside the tile. */
 - (NSString *) toolTip;
 /* The menu to show for a click (a left or right mouse-down), or nil to
- * show none, for an extra that put up a panel of its own instead. */
+ * show none, for an extra that put up a panel of its own instead. In the
+ * menu bar the event is nil: answer the menu (the right-click's), which
+ * drops below the status item. */
 - (NSMenu *) menuForEvent: (NSEvent *)event;
 @optional
+/*
+ * In the menu bar. An extra that shows words there (the clock) answers
+ * them here, and the bar draws them in its own font and colours; nil
+ * for a glyph. A glyph is drawn by -drawStatusItemInRect:color:, in
+ * color (the bar's text colour: one colour, its alpha for dimmed parts)
+ * and without a plate, into a rect as tall as the bar and as wide as
+ * -statusItemWidthForHeight: says (the height when it isn't
+ * implemented). An extra that implements neither gets its tile drawn
+ * in one colour, its plate left out. Call -dockExtraNeedsDisplay: when
+ * any of these change, as for the tile.
+ */
+- (NSString *) statusItemTitle;
+- (CGFloat) statusItemWidthForHeight: (CGFloat)height;
+- (void) drawStatusItemInRect: (NSRect)rect color: (NSColor *)color;
 /* Double-click: open an app or a Workspace Preferences pane. An extra
  * that implements this gets its menu a moment after a single click,
  * once it is clear no second click is coming. */
