@@ -118,7 +118,7 @@ battery, a Wi-Fi radio, a Bluetooth controller, a sound device, two
 keyboard layouts or more); the clock is always there. Its menu gives the
 quick controls and ends with **Open X Settings…**, which opens the
 settings app with the rest (`Bluetooth.app`, `Energy.app`,
-`Keyboard.app`; `Network.app` and `Sound.app` once they exist) from
+`Keyboard.app`, `DateTime.app`; `Network.app` and `Sound.app` once they exist) from
 `~/Applications`, `/System/Applications`, `/Local/Applications` or
 `/Network/Applications`, or brings it forward when it's running. While
 the app isn't installed the item isn't there. Extras add it with
@@ -221,8 +221,15 @@ Bundled extras:
   the minute, or the second, from a timerfd armed for the wall clock's
   next boundary with `TFD_TIMER_CANCEL_ON_SET`, so setting the clock
   redraws it at once. Time zone changes come from notify(3)
-  (`com.apple.system.timezone`) where something posts it, and from
-  `/etc/localtime`'s change time, read on each tick.
+  (`com.apple.system.timezone`, which Date & Time.app's helper posts),
+  and from `/etc/localtime`'s change time, read on each tick. The zone
+  is the one `/var/db/zoneinfo` names, made GNUstep's default: GNUstep's
+  own guess comes from ICU, which never looks again. Date &
+  Time.app's Clock tab sets the same four keys and posts the distributed
+  notification `org.nextbsd.SettingsChanged` (userInfo `domain` `DockWM`,
+  `keys`); the extra reads them again and redraws, and posts the same
+  when its own menu changes them. **Open Date & Time Settings…** opens
+  Date & Time.app (`DateTime.app`).
 
 ## Build
 
