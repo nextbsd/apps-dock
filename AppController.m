@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -69,7 +69,7 @@
   [_window setOpaque:NO];
   [_window setAlphaValue:1.0];
   [_window setBackgroundColor:[NSColor clearColor]];
-  [_window setTitle:@"AppsDockWM"];
+  [_window setTitle:@"AppsDock"];
   [_window setAcceptsMouseMovedEvents:YES];
 
   _dockView = [[DockView alloc] initWithFrame:NSMakeRect(0, 0,

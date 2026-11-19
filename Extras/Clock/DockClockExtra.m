@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Joseph Maloney <pkgdemonteam@gmail.com>
  *
@@ -34,7 +34,7 @@
  * DockExtraClockShowsSeconds, DockExtraClockShowsDate. Date & Time.app
  * (apps-settings DateTime) sets them too, from its Clock tab: it writes
  * the keys to the Dock's domain and posts the settings apps' distributed
- * notification org.nextbsd.SettingsChanged (userInfo: domain DockWM,
+ * notification org.nextbsd.SettingsChanged (userInfo: domain Dock,
  * keys), on which the extra reads them again and redraws. The extra
  * posts the same when its own menu changes them, so the app follows.
  * The menu ends with "Open Date & Time Settings…" (DockExtra.h).

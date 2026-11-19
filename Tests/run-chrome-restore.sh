@@ -22,7 +22,7 @@ cleanup()
   rm -rf "$build_dir"
 }
 trap cleanup EXIT
-objects=$(find obj/DockWM.obj -name '*.o' ! -name main.m.o)
+objects=$(find obj/Dock.obj -name '*.o' ! -name main.m.o)
 clang $(gnustep-config --objc-flags) Tests/RestoreMenu.m $objects \
   -o "$build_dir/restore-tests" $(gnustep-config --gui-libs) -lX11 -lXext
 wmaker --static --no-dock --no-clip --no-autolaunch --no-drawer \

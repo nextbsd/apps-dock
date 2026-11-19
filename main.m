@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -21,6 +21,54 @@
 #import <GNUstepBase/GNUstep.h>
 #import "AppController.h"
 
+/*
+ * The Dock was DockWM.app, and its settings are in the DockWM defaults
+ * domain; the Dock's own domain is its process name now. The first time
+ * it runs as Dock, the old domain's values that the new one hasn't got
+ * move over, and DockMigratedFromDockWM marks that it was done. The old
+ * domain stays as it was.
+ */
+static void
+migrateDockWMDefaults(void)
+{
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSString *name = [[NSProcessInfo processInfo] processName];
+  NSDictionary *old = [defaults persistentDomainForName:@"DockWM"];
+  NSMutableDictionary *domain;
+  NSEnumerator *e;
+  NSString *key;
+
+  if ([name isEqualToString:@"DockWM"])
+    {
+      return;
+    }
+  domain = [[[defaults persistentDomainForName:name] mutableCopy]
+	     autorelease];
+  if (domain == nil)
+    {
+      domain = [NSMutableDictionary dictionary];
+    }
+  if ([[domain objectForKey:@"DockMigratedFromDockWM"] boolValue])
+    {
+      return;
+    }
+  e = [old keyEnumerator];
+  while ((key = [e nextObject]) != nil)
+    {
+      if ([domain objectForKey:key] == nil)
+	{
+	  [domain setObject:[old objectForKey:key] forKey:key];
+	}
+    }
+  [domain setObject:@"YES" forKey:@"DockMigratedFromDockWM"];
+  [defaults setPersistentDomain:domain forName:name];
+  [defaults synchronize];
+  if ([old count])
+    {
+      NSLog(@"Dock: took the settings from the DockWM defaults domain.");
+    }
+}
+
 int
 main(int argc, const char **argv)
 {
@@ -28,7 +76,8 @@ main(int argc, const char **argv)
   NSApplication *app;
 
   ENTER_POOL
-    /* Set this before NSApplication can create DockWM's own icon window. */
+    migrateDockWMDefaults();
+    /* Set this before NSApplication can create the Dock's own icon window. */
     [[NSUserDefaults standardUserDefaults] setBool: YES
 					    forKey: @"GSSuppressAppIcon"];
   app = [NSApplication sharedApplication];

@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Joseph Maloney <pkgdemonteam@gmail.com>
  *
@@ -23,7 +23,7 @@
  *
  * The Dock owns its extras and the list of hidden ones:
  *
- *   domain  DockWM (the Dock's own defaults)
+ *   domain  Dock (the Dock's own defaults)
  *   key     DockExtrasHidden: an array of extras' CFBundleIdentifiers.
  *           An extra that isn't in it is shown (when its hardware is
  *           there: see DockExtra.h, -isAvailable).
@@ -54,7 +54,7 @@
 #ifndef _DOCK_EXTRAS_SETTINGS_H_
 #define _DOCK_EXTRAS_SETTINGS_H_
 
-#define DockExtrasDefaultsDomain	@"DockWM"
+#define DockExtrasDefaultsDomain	@"Dock"
 #define DockExtrasHiddenKey		@"DockExtrasHidden"
 
 #define DockSetExtraHiddenNotification	@"org.nextbsd.Dock.SetExtraHidden"

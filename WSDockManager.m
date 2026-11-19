@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Joseph Maloney <pkgdemonteam@gmail.com>
  *
@@ -281,7 +281,7 @@ handleEvent(ws_connection_t *conn, const ws_event_t *ev, void *ctx)
 	close(ev->u.preview.fd);
       break;
     case WS_EVENT_ERROR:
-      NSDebugLLog(@"DockWM", @"WindowServer: request 0x%x: %s",
+      NSDebugLLog(@"Dock", @"WindowServer: request 0x%x: %s",
 		  ev->u.error.request, ev->u.error.message);
       break;
     default:
@@ -576,7 +576,7 @@ imageFromSnapshot(const ws_snapshot_t *snap)
   if (![_iconConnection registerName:@"GSIconManager"])
     {
       NSLog(@"Unable to register GSIconManager; app badges and attention "
-	    @"requests will not reach DockWM.");
+	    @"requests will not reach the Dock.");
       DESTROY(_iconConnection);
     }
 }

@@ -316,7 +316,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
   [window setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces |
                                 NSWindowCollectionBehaviorStationary];
   [window setTitle:kind == 1 ? @"Dock tooltip" :
-    (kind == 3 ? @"DockWM tile" : (kind == 4 ? @"Dock insertion marker" :
+    (kind == 3 ? @"Dock tile" : (kind == 4 ? @"Dock insertion marker" :
     (kind == 2 ? [NSString stringWithFormat:@"%@ state", [item title]] :
     (item ? [item title] : @"Recycler"))))];
   if (kind == 5) [window setTitle:@"Dock section separator"];

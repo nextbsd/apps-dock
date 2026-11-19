@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Joseph Maloney <pkgdemonteam@gmail.com>
  *
@@ -61,7 +61,7 @@ DockWiFiOpen(int wakeFD)
   CFStringRef pattern;
   CFArrayRef patterns;
 
-  store = SCDynamicStoreCreate(NULL, CFSTR("DockWM Wi-Fi extra"),
+  store = SCDynamicStoreCreate(NULL, CFSTR("Dock Wi-Fi extra"),
 			       DockWiFiChanged, &context);
   if (store == NULL)
     {

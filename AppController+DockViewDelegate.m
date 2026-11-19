@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -615,7 +615,7 @@
 {
   return ([item kind] == DockItemApplication ||
 	  [item kind] == DockItemX11Window) &&
-    ![self applicationBundlePathIsDockWM:[item path]];
+    ![self applicationBundlePathIsDock:[item path]];
 }
 
 - (void) dockView: (id)dockView didShowSettingsForItem: (DockItem *)item

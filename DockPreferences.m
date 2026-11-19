@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -149,7 +149,7 @@ dockPositionForPlacement(DockPlacement placement)
 
 /*
  * The DockPlacement default as a placement: a number (0 to 5), or an
- * edge's name, so that `defaults write DockWM DockPlacement top` works
+ * edge's name, so that `defaults write Dock DockPlacement top` works
  * as well as `... DockPlacement 4`. NO when it is neither.
  */
 static BOOL
@@ -411,14 +411,14 @@ modeValue(id modes, NSString *mode, NSString *key)
 					 position, @"value", nil]
 	deliverImmediately:YES];
   NS_HANDLER
-    NSLog(@"DockWM: can't post %@: %@",
+    NSLog(@"Dock: can't post %@: %@",
 	  DockDesktopSettingsChangedNotification, [localException reason]);
   NS_ENDHANDLER
 }
 
 /*
  * Centred, as on macOS, unless DockAlignment says "start" (or 1), so
- * that `defaults write DockWM DockAlignment start` works too: the Dock
+ * that `defaults write Dock DockAlignment start` works too: the Dock
  * then fills its edge from the start, as it did before.
  */
 - (DockAlignment) savedDockAlignment

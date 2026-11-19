@@ -29,14 +29,14 @@ for attempt in $(seq 1 50); do
 done
 wmctrl -m >/dev/null
 wmctrl -n 3
-./DockWM.app/DockWM >"$test_dir/dock.log" 2>&1 &
+./Dock.app/Dock >"$test_dir/dock.log" 2>&1 &
 dock_pid=$!
 
 dock_id=
 for attempt in $(seq 1 100); do
   # Startup helper windows may disappear while xwininfo walks the tree.
   dock_id=$(xwininfo -root -tree 2>/dev/null |
-    awk '/"AppsDockWM"/ { print $1; exit }')
+    awk '/"AppsDock"/ { print $1; exit }')
   if [ -n "$dock_id" ] &&
      xprop -id "$dock_id" _NET_WM_DESKTOP | grep -q '= 4294967295'; then
     break

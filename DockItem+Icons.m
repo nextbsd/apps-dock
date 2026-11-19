@@ -1,5 +1,5 @@
 /*
- * DockWM
+ * Dock
  *
  * Copyright (C) 2026 Gregory Casamento <greg.casamento@gmail.com>
  *
@@ -39,7 +39,7 @@
       return nil;
     }
 
-  cachePath = [[libraryPath stringByAppendingPathComponent:@"DockWM"]
+  cachePath = [[libraryPath stringByAppendingPathComponent:@"Dock"]
 			   stringByAppendingPathComponent:@"X11Icons"];
   if ([[NSFileManager defaultManager] createDirectoryAtPath:cachePath
 				withIntermediateDirectories:YES
