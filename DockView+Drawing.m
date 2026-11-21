@@ -626,9 +626,31 @@
 }
 
 
+/* The icons, separators and Recycler are windows of their own (see
+ * DockView+IconWindows.m); this view is clear, or with the panel the
+ * panel behind them: the background color at the Dock's transparency,
+ * rounded, as macOS's Dock is. Tiles (common_Tile, the NeXTSTEP look)
+ * stand on their own, with no panel. */
 - (void) drawRect: (NSRect)dirtyRect
 {
   NSRectFillUsingOperation(dirtyRect, NSCompositeClear);
+  if (!_showsPanel || _usesCellBackgroundTile || _backgroundAlpha <= 0.0)
+    {
+      return;
+    }
+
+  NSRect bounds = NSInsetRect([self bounds], 0.5, 0.5);
+  CGFloat radius = MIN(16.0, MIN(NSWidth(bounds), NSHeight(bounds)) * 0.25);
+  NSBezierPath *panel = [NSBezierPath bezierPathWithRoundedRect:bounds
+                                                        xRadius:radius
+                                                        yRadius:radius];
+
+  [[_backgroundColor colorWithAlphaComponent:
+     [_backgroundColor alphaComponent] * _backgroundAlpha] set];
+  [panel fill];
+  [[NSColor colorWithCalibratedWhite:1.0 alpha:0.12] set];
+  [panel setLineWidth:1.0];
+  [panel stroke];
 }
 
 

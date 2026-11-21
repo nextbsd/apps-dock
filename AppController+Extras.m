@@ -69,6 +69,7 @@
   BOOL moved = NO;
 
   [_extrasController setShowsExtrasInMenuBar:[self dockExtrasGoInMenuBar]];
+  [self updateDockPanel];
   if ([WSDockManager isWindowServerSession])
     {
       DockPlacement placement;

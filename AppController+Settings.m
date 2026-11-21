@@ -36,6 +36,7 @@
   NSDictionary *info = [notification userInfo];
   NSDictionary *values = [info objectForKey:@"values"];
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSArray *keys = [info objectForKey:@"keys"];
   NSEnumerator *e;
   NSString *key;
 
@@ -45,6 +46,7 @@
     }
   if ([values isKindOfClass:[NSDictionary class]])
     {
+      keys = [values allKeys];
       e = [values keyEnumerator];
       while ((key = [e nextObject]) != nil)
 	{
@@ -55,27 +57,54 @@
     {
       [defaults synchronize];
     }
+  if (![keys isKindOfClass:[NSArray class]])
+    {
+      return;
+    }
 
-  [self settingsController:nil didChangeDockScale:[_preferences savedDockScale]];
-  [self settingsController:nil
-    didChangeMagnifiesHoveredIcons:[_preferences savedMagnifiesHoveredIcons]];
-  [self settingsController:nil
-    didChangeHoverIconScale:[_preferences savedHoverIconScale]];
-  [self settingsController:nil
-    didChangeUseCellTileBackground:[self savedUseCellTileBackground]];
-  [self settingsController:nil didChangeShowDockBorder:[self savedShowDockBorder]];
-  [_dockView setShowsSeparators:[_preferences savedShowsSeparators]];
-  [self settingsController:nil didChangeWindowAlpha:[self savedWindowAlpha]];
-  [self settingsController:nil
-    didChangeRunningIndicatorMode:[self savedRunningIndicatorMode]];
-  [self settingsController:nil
-    didChangeWigglesOnLaunch:[_preferences savedWigglesOnLaunch]];
-  [self settingsController:nil
-    didChangeWigglesOnAttentionRequest:[_preferences savedWigglesOnAttentionRequest]];
-  [self settingsController:nil
-    didChangeSingleClickLaunchesApplications:[self savedSingleClickLaunchesApplications]];
+  /* Only the settings that changed: applying one saves it, and a setting
+   * never chosen keeps following the Dock's default. (The Clock extra's
+   * own keys come this way too; the extra reads those itself.) */
+  if ([keys containsObject:@"DockScale"])
+    [self settingsController:nil didChangeDockScale:[_preferences savedDockScale]];
+  if ([keys containsObject:@"DockMagnifiesHoveredIcons"])
+    [self settingsController:nil
+      didChangeMagnifiesHoveredIcons:[_preferences savedMagnifiesHoveredIcons]];
+  if ([keys containsObject:@"DockHoverIconScale"])
+    [self settingsController:nil
+      didChangeHoverIconScale:[_preferences savedHoverIconScale]];
+  if ([keys containsObject:@"DockUseCellTileBackground"])
+    [self settingsController:nil
+      didChangeUseCellTileBackground:[self savedUseCellTileBackground]];
+  if ([keys containsObject:@"DockShowBorder"])
+    [self settingsController:nil didChangeShowDockBorder:[self savedShowDockBorder]];
+  if ([keys containsObject:@"DockShowsSeparators"])
+    [_dockView setShowsSeparators:[_preferences savedShowsSeparators]];
+  if ([keys containsObject:@"DockShowsPanel"])
+    [self updateDockPanel];
+  if ([keys containsObject:@"DockWindowAlpha"])
+    [self settingsController:nil didChangeWindowAlpha:[self savedWindowAlpha]];
+  if ([keys containsObject:@"DockRunningIndicatorMode"])
+    [self settingsController:nil
+      didChangeRunningIndicatorMode:[self savedRunningIndicatorMode]];
+  if ([keys containsObject:@"DockWigglesOnLaunch"])
+    [self settingsController:nil
+      didChangeWigglesOnLaunch:[_preferences savedWigglesOnLaunch]];
+  if ([keys containsObject:@"DockWigglesOnAttentionRequest"])
+    [self settingsController:nil
+      didChangeWigglesOnAttentionRequest:[_preferences savedWigglesOnAttentionRequest]];
+  if ([keys containsObject:@"DockSingleClickLaunchesApplications"])
+    [self settingsController:nil
+      didChangeSingleClickLaunchesApplications:[self savedSingleClickLaunchesApplications]];
   /* Saved now: Workspace Preferences reads them back to show them. */
   [defaults synchronize];
+}
+
+/* The panel follows the menu style until a Dock style is chosen. */
+- (void) updateDockPanel
+{
+  [_dockView setShowsPanel:
+    [_preferences savedShowsPanelInMacMenuStyle:[self dockIsMacMenuStyle]]];
 }
 
 - (SettingsController *) settingsController

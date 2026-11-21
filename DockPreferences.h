@@ -73,6 +73,7 @@ enum
 - (BOOL) savedShowDockBorder;
 - (void) saveShowDockBorder: (BOOL)showDockBorder;
 - (BOOL) savedShowsSeparators;
+- (BOOL) savedShowsPanelInMacMenuStyle: (BOOL)macMenuStyle;
 - (NSInteger) savedDockCellSizeMode;
 - (void) saveDockCellSizeMode: (NSInteger)mode;
 - (DockRunningIndicatorMode) savedRunningIndicatorMode;
