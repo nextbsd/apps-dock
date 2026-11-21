@@ -596,6 +596,10 @@
   NSArray *boundaries = [self sectionBoundaryIndexes];
   NSUInteger i;
 
+  if (!_showsSeparators)
+    {
+      return;
+    }
   for (i = 0; i < [boundaries count]; i++)
     {
       [self drawSeparatorBeforeIndex:

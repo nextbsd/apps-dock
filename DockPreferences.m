@@ -32,6 +32,7 @@ static NSString *DockPlaysSoundOnRemoveDefaultsKey = @"DockPlaysSoundOnRemove";
 static NSString *DockSingleClickLaunchesApplicationsDefaultsKey = @"DockSingleClickLaunchesApplications";
 static NSString *DockHidesMiniwindowsDefaultsKey = @"DockHidesMiniwindows";
 static NSString *DockScaleDefaultsKey = @"DockScale";
+static NSString *DockShowsSeparatorsDefaultsKey = @"DockShowsSeparators";
 
 @implementation DockPreferences
 
@@ -538,6 +539,15 @@ modeValue(id modes, NSString *mode, NSString *key)
 {
   [[NSUserDefaults standardUserDefaults] setBool:showDockBorder
 					  forKey:DockShowBorderDefaultsKey];
+}
+
+/* Shown unless turned off (Workspace Preferences -> Dock). */
+- (BOOL) savedShowsSeparators
+{
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+  return [defaults objectForKey:DockShowsSeparatorsDefaultsKey] == nil
+    || [defaults boolForKey:DockShowsSeparatorsDefaultsKey];
 }
 
 - (NSInteger) savedDockCellSizeMode

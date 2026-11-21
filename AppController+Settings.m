@@ -18,6 +18,7 @@
  */
 
 #import "AppControllerPrivate.h"
+#import "DockExtrasSettings.h"
 
 @implementation AppController (Settings)
 
@@ -26,33 +27,55 @@
   [_settingsController updateControls];
 }
 
-- (NSMenu *) dockMenu
+/* Another app changed the Dock's settings (Workspace Preferences ->
+ * Dock): apply them as the Settings window's controls do. The new
+ * values come with the notification, since this process may not read
+ * back what another one saved in its domain; without them, read again. */
+- (void) dockSettingsDidChange: (NSNotification *)notification
 {
-  if (!_dockMenu)
+  NSDictionary *info = [notification userInfo];
+  NSDictionary *values = [info objectForKey:@"values"];
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSEnumerator *e;
+  NSString *key;
+
+  if (![[info objectForKey:@"domain"] isEqual:DockExtrasDefaultsDomain])
     {
-      NSMenuItem *item;
-
-      _dockMenu = [[NSMenu alloc] initWithTitle:@"Dock"];
-
-      item = [[NSMenuItem alloc] initWithTitle:@"Settings..."
-					action:@selector(showSettingsPanel:)
-				 keyEquivalent:@","];
-      [item setTarget:self];
-      [_dockMenu addItem:item];
-      DESTROY(item);
-
-      [_dockMenu addItem:[NSMenuItem separatorItem]];
-
-      item = [[NSMenuItem alloc] initWithTitle:@"Quit"
-					action:@selector(quitDock:)
-				 keyEquivalent:@"q"];
-      [item setTarget:self];
-      [_dockMenu addItem:item];
-      DESTROY(item);
+      return;
+    }
+  if ([values isKindOfClass:[NSDictionary class]])
+    {
+      e = [values keyEnumerator];
+      while ((key = [e nextObject]) != nil)
+	{
+	  [defaults setObject:[values objectForKey:key] forKey:key];
+	}
+    }
+  else
+    {
+      [defaults synchronize];
     }
 
-  [self updateDockMenu];
-  return _dockMenu;
+  [self settingsController:nil didChangeDockScale:[_preferences savedDockScale]];
+  [self settingsController:nil
+    didChangeMagnifiesHoveredIcons:[_preferences savedMagnifiesHoveredIcons]];
+  [self settingsController:nil
+    didChangeHoverIconScale:[_preferences savedHoverIconScale]];
+  [self settingsController:nil
+    didChangeUseCellTileBackground:[self savedUseCellTileBackground]];
+  [self settingsController:nil didChangeShowDockBorder:[self savedShowDockBorder]];
+  [_dockView setShowsSeparators:[_preferences savedShowsSeparators]];
+  [self settingsController:nil didChangeWindowAlpha:[self savedWindowAlpha]];
+  [self settingsController:nil
+    didChangeRunningIndicatorMode:[self savedRunningIndicatorMode]];
+  [self settingsController:nil
+    didChangeWigglesOnLaunch:[_preferences savedWigglesOnLaunch]];
+  [self settingsController:nil
+    didChangeWigglesOnAttentionRequest:[_preferences savedWigglesOnAttentionRequest]];
+  [self settingsController:nil
+    didChangeSingleClickLaunchesApplications:[self savedSingleClickLaunchesApplications]];
+  /* Saved now: Workspace Preferences reads them back to show them. */
+  [defaults synchronize];
 }
 
 - (SettingsController *) settingsController
@@ -65,6 +88,9 @@
   return _settingsController;
 }
 
+/* Nothing opens the Settings window for now: the Dock has no Settings
+ * or Quit items of its own (the saved values and `defaults write`
+ * still apply). The window stays for when its settings find a home. */
 - (void) showSettingsPanel: (id)sender
 {
   [[self settingsController] showWindow:sender];

@@ -84,6 +84,7 @@
   [_dockView setBackgroundColor:_backgroundColor];
   [_dockView setBackgroundAlpha:_windowAlpha];
   [_dockView setShowsBorder:_showDockBorder];
+  [_dockView setShowsSeparators:[_preferences savedShowsSeparators]];
   [_dockView setRunningIndicatorMode:_runningIndicatorMode];
   [_dockView setMagnifiesHoveredIcons:_magnifiesHoveredIcons];
   [_dockView setHoverIconScale:_hoverIconScale];
@@ -92,7 +93,6 @@
   [_dockView setItems:_items];
   [_dockView setTopTileIcon:[self workspaceIcon]];
   [_dockView setPinnedItemCount:[self pinnedApplicationCount]];
-  [_dockView setMenu:[self dockMenu]];
   [_window setContentView:_dockView];
 
   [self updateDockBackground];
@@ -134,6 +134,13 @@
        selector:@selector(desktopSettingsDidChange:)
 	   name:DockDesktopSettingsChangedNotification
 	 object:nil];
+  /* Workspace Preferences -> Dock: size, magnification, the look of the
+   * tiles, bouncing, single click. */
+  [[NSDistributedNotificationCenter defaultCenter]
+    addObserver:self
+       selector:@selector(dockSettingsDidChange:)
+	   name:DockSettingsChangedNotification
+	 object:nil];
 
   /* The screen changed size (another "looks like" size in Displays,
    * a new display mode): fill the new screen edge again. */
@@ -167,7 +174,6 @@
   DESTROY(_settingsController);
   DESTROY(_recyclerController);
   DESTROY(_preferences);
-  DESTROY(_dockMenu);
   DESTROY(_windowManager);
   DESTROY(_extrasController);
   DESTROY(_dockView);

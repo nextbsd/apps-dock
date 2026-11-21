@@ -28,6 +28,7 @@
     {
       _items = [NSMutableArray new];
       _extras = [NSMutableArray new];
+      _showsSeparators = YES;
       _extraGenerations = [NSMutableDictionary new];
       _draggingPaths = NO;
       _performedDragOperation = NO;
@@ -317,6 +318,21 @@
 - (BOOL) showsBorder
 {
   return _showsBorder;
+}
+
+- (void) setShowsSeparators: (BOOL)showsSeparators
+{
+  if (_showsSeparators != showsSeparators)
+    {
+      _showsSeparators = showsSeparators;
+      [self syncIconWindows];
+      [self setNeedsDisplay:YES];
+    }
+}
+
+- (BOOL) showsSeparators
+{
+  return _showsSeparators;
 }
 
 - (void) setTopTileIcon: (NSImage *)icon

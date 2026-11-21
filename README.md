@@ -10,6 +10,15 @@ It supports two inputs:
 - Discovering small X11 top-level windows, including common WindowMaker
   dockapps, and reparenting them into an X11 dock host.
 
+The Dock has no Settings or Quit items of its own for now: right-clicking
+its top tile shows nothing, and an app's menu has no Settings…. Where this
+README names a tab of **Settings** (Dock, Appearance, Behavior,
+Applications, Extras), that is the Dock's Settings window, which nothing
+opens until its settings find a home. They are still read from the `Dock`
+defaults domain (`DockAllowsGaps`, `DockKeepsMissingApplications`,
+`DockExtrasHidden`, …; `GSUseIconManager` in `NSGlobalDomain` and in an
+app's own domain): set one with `defaults write` and restart the Dock.
+
 ## NextBSD WindowServer
 
 The Dock also runs on NextBSD's WindowServer (the `nextbsd` GNUstep backend),
@@ -46,8 +55,7 @@ apps-windowserver's README). It's built when pkg-config finds
   status area for Dock extras, and the Recycler last, at the bottom of a
   column or the right end of a row. When the column or row is full, tiles
   shrink.
-- **Position on screen** (`DockAlignment`, in the Dock's **Settings → Dock
-  → Alignment**): **Centered** (`center`, the default, as on
+- **Position on screen** (`DockAlignment`): **Centered** (`center`, the default, as on
   macOS) puts the Dock in the middle of its edge, as long as what's in it,
   so it grows and shrinks as apps launch and quit, extras come and go and
   a drop slot opens; a separator sets the extras and the Recycler off from
@@ -72,12 +80,10 @@ apps-windowserver's README). It's built when pkg-config finds
   the bottom while tiling; switching mode in Workspace Preferences moves the
   Dock at once. Change it in
   **Workspace Preferences → Desktop → Dock position** (nextbsd/apps-workspace#54),
-  including "Use theme default", or in the Dock's own **Settings → Dock →
-  Placement** (Left, Right, Top, Bottom), which saves it as the user's
-  choice for the current mode; either moves the Dock at once. The Dock listens for the
-  distributed notification `org.nextbsd.DesktopSettingsChanged` (its
-  userInfo's `key` and effective `value`), which Workspace posts and the
-  Dock's Settings window posts too. `defaults write NSGlobalDomain
+  including "Use theme default", which moves the Dock at once. The Dock
+  listens for the distributed notification
+  `org.nextbsd.DesktopSettingsChanged` (its userInfo's `key` and effective
+  `value`), which Workspace posts. `defaults write NSGlobalDomain
   NBModeSettings '{ tiling = { NBDockPosition = top; }; }'` and a restart
   of the Dock work as well.
   `DockPlacement` stays the X11 (Gershwin) setting: there the left and

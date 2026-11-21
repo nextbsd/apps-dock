@@ -149,13 +149,6 @@
     _wigglesOnAttentionRequest : [item wigglesOnAttentionRequest];
 }
 
-- (void) quitDock: (id)sender
-{
-  [self savePersistedApplications];
-  [[NSUserDefaults standardUserDefaults] synchronize];
-  [NSApp terminate:sender];
-}
-
 - (void) refreshDock
 {
   [self sortItemsIntoSections];
@@ -608,21 +601,6 @@
   else
     {
       NSBeep();
-    }
-}
-
-- (BOOL) dockView: (id)dockView canShowSettingsForItem: (DockItem *)item
-{
-  return ([item kind] == DockItemApplication ||
-	  [item kind] == DockItemX11Window) &&
-    ![self applicationBundlePathIsDock:[item path]];
-}
-
-- (void) dockView: (id)dockView didShowSettingsForItem: (DockItem *)item
-{
-  if ([self dockView:dockView canShowSettingsForItem:item])
-    {
-      [self showSettingsForDockItem:item];
     }
 }
 

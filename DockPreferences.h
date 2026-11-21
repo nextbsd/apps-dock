@@ -25,6 +25,9 @@
 #define DockModeDefaultsKey @"NBModeDefaults"
 #define DockDesktopSettingsChangedNotification \
   @"org.nextbsd.DesktopSettingsChanged"
+/* The settings apps' "settings changed": userInfo domain (Dock), keys,
+ * and from Workspace Preferences -> Dock, values (the new ones). */
+#define DockSettingsChangedNotification @"org.nextbsd.SettingsChanged"
 
 enum
 {
@@ -69,6 +72,7 @@ enum
 - (void) saveWindowAlpha: (CGFloat)alpha;
 - (BOOL) savedShowDockBorder;
 - (void) saveShowDockBorder: (BOOL)showDockBorder;
+- (BOOL) savedShowsSeparators;
 - (NSInteger) savedDockCellSizeMode;
 - (void) saveDockCellSizeMode: (NSInteger)mode;
 - (DockRunningIndicatorMode) savedRunningIndicatorMode;
