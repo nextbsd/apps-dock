@@ -70,6 +70,7 @@
 @interface AppController (Private)
 - (DockPlacement) savedDockPlacement;
 - (void) desktopSettingsDidChange: (NSNotification *)notification;
+- (void) dockSettingsDidChange: (NSNotification *)notification;
 - (void) keepApplicationsRequested: (NSNotification *)notification;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor;
@@ -209,7 +210,6 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (NSRect) windowServerDockFrameForEdge: (DockEdge)edge
 			      thickness: (CGFloat)thickness;
 - (void) updateDockMenu;
-- (NSMenu *) dockMenu;
 - (SettingsController *) settingsController;
 - (void) showSettingsPanel: (id)sender;
 - (void) showSettingsForDockItem: (DockItem *)item;
@@ -226,7 +226,6 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (BOOL) itemWigglesOnLaunch: (DockItem *)item;
 - (BOOL) itemWigglesOnActivation: (DockItem *)item;
 - (BOOL) itemWigglesOnAttentionRequest: (DockItem *)item;
-- (void) quitDock: (id)sender;
 - (void) refreshDock;
 - (DockItem *) itemForXWindow: (unsigned long)xWindow;
 - (DockItem *) itemForApplicationIconWindow: (unsigned long)xWindow;

@@ -62,8 +62,6 @@ typedef enum
 - (BOOL) dockView: (id)dockView itemIsOpenAtLogin: (DockItem *)item;
 - (void) dockView: (id)dockView didToggleOpenAtLoginForItem: (DockItem *)item;
 - (void) dockView: (id)dockView didShowItemInFileViewer: (DockItem *)item;
-- (BOOL) dockView: (id)dockView canShowSettingsForItem: (DockItem *)item;
-- (void) dockView: (id)dockView didShowSettingsForItem: (DockItem *)item;
 - (BOOL) dockView: (id)dockView canRestoreItem: (DockItem *)item;
 - (NSArray *) dockView: (id)dockView minimizedWindowsForItem: (DockItem *)item;
 - (void) dockView: (id)dockView restoreWindows: (NSArray *)windows
@@ -107,6 +105,7 @@ typedef enum
   BOOL _usesCellBackgroundTile;
   BOOL _allowsGaps;
   BOOL _showsBorder;
+  BOOL _showsSeparators;
   BOOL _magnifiesHoveredIcons;
   DockRunningIndicatorMode _runningIndicatorMode;
   BOOL _recyclerHasContents;
@@ -146,6 +145,10 @@ typedef enum
 - (void) setBackgroundAlpha: (CGFloat)alpha;
 - (void) setShowsBorder: (BOOL)showsBorder;
 - (BOOL) showsBorder;
+/* The lines between the Dock's sections (kept apps, running apps,
+ * minimized windows, extras); the sections keep their gaps without them. */
+- (void) setShowsSeparators: (BOOL)showsSeparators;
+- (BOOL) showsSeparators;
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode;
 /* The top tile's icon: Workspace's, or the GNUstep logo when nil. */
 - (void) setTopTileIcon: (NSImage *)icon;

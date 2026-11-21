@@ -112,7 +112,6 @@
   NSMenuItem *menuItem;
   BOOL hasPath = [[item path] length] > 0;
   BOOL openAtLogin = NO;
-  BOOL canShowSettings = NO;
 
   if ([item kind] == DockItemMinimizedWindow)
     {
@@ -125,21 +124,6 @@
     {
       openAtLogin = [_delegate dockView:self itemIsOpenAtLogin:item];
     }
-  if ([_delegate respondsToSelector:
-		 @selector(dockView:canShowSettingsForItem:)])
-    {
-      canShowSettings = [_delegate dockView:self canShowSettingsForItem:item];
-    }
-
-  if ([item kind] == DockItemApplication && canShowSettings)
-    {
-      menuItem = [self menuItemWithTitle:@"Settings..."
-				  action:@selector(showItemSettings:)
-				    item:item];
-      [menu addItem:menuItem];
-      [menu addItem:[NSMenuItem separatorItem]];
-    }
-
   /* Plain actions, never checked: Keep in Dock puts the tile with the
    * kept apps; Remove from Dock takes it out of them (a running app
    * then stays with the running apps until it quits). The one that
@@ -280,18 +264,6 @@
 		 @selector(dockView:didShowItemInFileViewer:)])
     {
       [_delegate dockView:self didShowItemInFileViewer:item];
-    }
-}
-
-
-- (void) showItemSettings: (id)sender
-{
-  DockItem *item = [sender representedObject];
-
-  if ([_delegate respondsToSelector:
-		 @selector(dockView:didShowSettingsForItem:)])
-    {
-      [_delegate dockView:self didShowSettingsForItem:item];
     }
 }
 

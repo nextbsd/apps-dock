@@ -597,7 +597,7 @@ static NSWindow *NewIconWindow(DockView *dock, DockItem *item, NSInteger kind)
       NSRect rect = extras ? [self extrasSeparatorRect]
 	: [self separatorRectBeforeIndex:
 		  [[boundaries objectAtIndex:edge] unsignedIntegerValue]];
-      if (NSIsEmptyRect(rect)) continue;
+      if (NSIsEmptyRect(rect) || !_showsSeparators) continue;
       NSString *key = extras ? @"separator-extras"
 	: [NSString stringWithFormat:@"separator-%lu", (unsigned long)edge];
       [liveKeys addObject:key];
