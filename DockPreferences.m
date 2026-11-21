@@ -33,6 +33,7 @@ static NSString *DockSingleClickLaunchesApplicationsDefaultsKey = @"DockSingleCl
 static NSString *DockHidesMiniwindowsDefaultsKey = @"DockHidesMiniwindows";
 static NSString *DockScaleDefaultsKey = @"DockScale";
 static NSString *DockShowsSeparatorsDefaultsKey = @"DockShowsSeparators";
+static NSString *DockShowsPanelDefaultsKey = @"DockShowsPanel";
 
 @implementation DockPreferences
 
@@ -478,6 +479,11 @@ modeValue(id modes, NSString *mode, NSString *key)
       NS_ENDHANDLER
 	}
 
+  /* Unset: the dark gray of macOS's Dock. */
+  if (color == nil)
+    {
+      color = [NSColor colorWithCalibratedWhite:0.12 alpha:1.0];
+    }
   return [DockPreferences calibratedBackgroundColor:color];
 }
 
@@ -505,9 +511,11 @@ modeValue(id modes, NSString *mode, NSString *key)
   id savedAlpha = [defaults objectForKey:DockWindowAlphaDefaultsKey];
   CGFloat alpha;
 
+  /* Unset: see-through as macOS's Dock is, a little less, since nothing
+   * blurs what's behind it. */
   if (!savedAlpha)
     {
-      return 1.0;
+      return 0.55;
     }
 
   alpha = [defaults floatForKey:DockWindowAlphaDefaultsKey];
@@ -539,6 +547,18 @@ modeValue(id modes, NSString *mode, NSString *key)
 {
   [[NSUserDefaults standardUserDefaults] setBool:showDockBorder
 					  forKey:DockShowBorderDefaultsKey];
+}
+
+/* The see-through panel behind the icons, as macOS's Dock has: chosen
+   with Workspace Preferences' Dock style, else shown only in the Mac
+   menu style (the menu bar is see-through there too). */
+- (BOOL) savedShowsPanelInMacMenuStyle: (BOOL)macMenuStyle
+{
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+  if ([defaults objectForKey:DockShowsPanelDefaultsKey] == nil)
+    return macMenuStyle;
+  return [defaults boolForKey:DockShowsPanelDefaultsKey];
 }
 
 /* Shown unless turned off (Workspace Preferences -> Dock). */

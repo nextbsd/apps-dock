@@ -106,6 +106,7 @@ typedef enum
   BOOL _allowsGaps;
   BOOL _showsBorder;
   BOOL _showsSeparators;
+  BOOL _showsPanel;
   BOOL _magnifiesHoveredIcons;
   DockRunningIndicatorMode _runningIndicatorMode;
   BOOL _recyclerHasContents;
@@ -149,6 +150,10 @@ typedef enum
  * minimized windows, extras); the sections keep their gaps without them. */
 - (void) setShowsSeparators: (BOOL)showsSeparators;
 - (BOOL) showsSeparators;
+/* A see-through panel behind the icons (the background color at the
+ * background alpha), as macOS's Dock has; never with cell tiles. */
+- (void) setShowsPanel: (BOOL)showsPanel;
+- (BOOL) showsPanel;
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode;
 /* The top tile's icon: Workspace's, or the GNUstep logo when nil. */
 - (void) setTopTileIcon: (NSImage *)icon;

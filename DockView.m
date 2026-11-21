@@ -335,6 +335,20 @@
   return _showsSeparators;
 }
 
+- (void) setShowsPanel: (BOOL)showsPanel
+{
+  if (_showsPanel != showsPanel)
+    {
+      _showsPanel = showsPanel;
+      [self setNeedsDisplay:YES];
+    }
+}
+
+- (BOOL) showsPanel
+{
+  return _showsPanel;
+}
+
 - (void) setTopTileIcon: (NSImage *)icon
 {
   ASSIGN(_topTileIcon, icon ? icon : [self loadGNUstepIcon]);
