@@ -175,7 +175,7 @@ battery, a Wi-Fi radio, a Bluetooth controller, a sound device, two
 keyboard layouts or more); the clock is always there. Its menu gives the
 quick controls and ends with **Open X Settings…**, which opens the
 settings app with the rest (`Bluetooth.app`, `Energy.app`,
-`Keyboard.app`, `DateTime.app`, `Sound.app`; `Network.app` once it exists) from
+`Keyboard.app`, `Date & Time.app`, `Sound.app`; `Network.app` once it exists) from
 `~/Applications`, `/System/Applications`, `/Local/Applications` or
 `/Network/Applications`, or brings it forward when it's running. While
 the app isn't installed the item isn't there. Extras add it with
@@ -296,7 +296,7 @@ Bundled extras:
   notification `org.nextbsd.SettingsChanged` (userInfo `domain` `Dock`,
   `keys`); the extra reads them again and redraws, and posts the same
   when its own menu changes them. **Open Date & Time Settings…** opens
-  Date & Time.app (`DateTime.app`).
+  `Date & Time.app` (or an older install's `DateTime.app`).
 
 ## Build
 

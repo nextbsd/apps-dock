@@ -606,7 +606,7 @@ DockClockDrawHand(NSPoint center, CGFloat angle, CGFloat length,
 	  state:[defaults boolForKey:ShowsSecondsKey] toMenu:menu];
   [self addItem:@"Show Date" action:@selector(toggleDate:)
 	  state:[defaults boolForKey:ShowsDateKey] toMenu:menu];
-  /* DateTime.app: gnustep-make can't name a bundle "Date & Time". */
+  /* Date & Time.app, or DateTime.app as it was installed before. */
   DockExtraAddSettingsItem(menu, _host, @"Open Date & Time Settings…",
 			   [NSArray arrayWithObjects:@"Date & Time",
 				    @"DateTime", nil]);
