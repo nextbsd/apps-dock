@@ -45,6 +45,17 @@
 					     object:nil];
   [self performSelector:@selector(updateDockExtrasPlace) withObject:nil
 	     afterDelay:0.0];
+  /* The style in effect comes with the notification: this process may
+   * not read back what Workspace saved in NSGlobalDomain. */
+  if ([key isEqual:DockStyleDefaultsKey])
+    {
+      id style = [info objectForKey:@"value"];
+      if ([style isKindOfClass:[NSString class]])
+	[self applyDockStyle:style];
+      else
+	[self updateDockStyle];
+      return;
+    }
   if (![key isEqual:DockPositionDefaultsKey]
       && ![key isEqual:DockWindowModeDefaultsKey]
       && ![key isEqual:DockModeSettingsKey])

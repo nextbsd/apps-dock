@@ -19,6 +19,14 @@ defaults domain (`DockAllowsGaps`, `DockKeepsMissingApplications`,
 `DockExtrasHidden`, …; `GSUseIconManager` in `NSGlobalDomain` and in an
 app's own domain): set one with `defaults write` and restart the Dock.
 
+The Dock's look is a desktop setting, `NBDockStyle` (Workspace Preferences →
+Desktop → Dock style, resolved as nextbsd-theme's `NBDesktopSettings.h`
+says: the user's choice in `NSGlobalDomain`, else the theme's default):
+`nextstep`, a tile (common_Tile) behind each icon and no separators, the
+NextBSD theme's default; `mac`, separators between the sections on a
+see-through, rounded panel; or `tiling`, clear, with the separators. The Dock
+follows a change at once (`org.nextbsd.DesktopSettingsChanged`).
+
 ## NextBSD WindowServer
 
 The Dock also runs on NextBSD's WindowServer (the `nextbsd` GNUstep backend),

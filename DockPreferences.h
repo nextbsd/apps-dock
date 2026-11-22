@@ -23,6 +23,10 @@
 #define DockWindowModeDefaultsKey @"NBWindowMode"
 #define DockModeSettingsKey @"NBModeSettings"
 #define DockModeDefaultsKey @"NBModeDefaults"
+/* The Dock style, a desktop setting (nextbsd-theme NBDesktopSettings.h):
+ * nextstep (a tile behind each icon, no separators), mac (separators on
+ * a see-through panel) or tiling (clear, with separators). */
+#define DockStyleDefaultsKey @"NBDockStyle"
 #define DockDesktopSettingsChangedNotification \
   @"org.nextbsd.DesktopSettingsChanged"
 /* The settings apps' "settings changed": userInfo domain (Dock), keys,
@@ -53,6 +57,8 @@ enum
 - (DockPlacement) savedDockPlacement;
 /* The window mode in effect, stacking or tiling (NBWindowMode). */
 + (NSString *) windowMode;
+/* The Dock style in effect: the user's, else the theme's, else nextstep. */
++ (NSString *) dockStyle;
 /* On WindowServer: one of the four edge placements, from the desktop
  * setting NBDockPosition in the current window mode (see nextbsd-theme's
  * NBDesktopSettings.h). */
@@ -72,8 +78,6 @@ enum
 - (void) saveWindowAlpha: (CGFloat)alpha;
 - (BOOL) savedShowDockBorder;
 - (void) saveShowDockBorder: (BOOL)showDockBorder;
-- (BOOL) savedShowsSeparators;
-- (BOOL) savedShowsPanelInMacMenuStyle: (BOOL)macMenuStyle;
 - (NSInteger) savedDockCellSizeMode;
 - (void) saveDockCellSizeMode: (NSInteger)mode;
 - (DockRunningIndicatorMode) savedRunningIndicatorMode;

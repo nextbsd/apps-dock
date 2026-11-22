@@ -32,8 +32,6 @@ static NSString *DockPlaysSoundOnRemoveDefaultsKey = @"DockPlaysSoundOnRemove";
 static NSString *DockSingleClickLaunchesApplicationsDefaultsKey = @"DockSingleClickLaunchesApplications";
 static NSString *DockHidesMiniwindowsDefaultsKey = @"DockHidesMiniwindows";
 static NSString *DockScaleDefaultsKey = @"DockScale";
-static NSString *DockShowsSeparatorsDefaultsKey = @"DockShowsSeparators";
-static NSString *DockShowsPanelDefaultsKey = @"DockShowsPanel";
 
 @implementation DockPreferences
 
@@ -309,6 +307,26 @@ modeValue(id modes, NSString *mode, NSString *key)
   return @"stacking";
 }
 
+/* As NBDesktopSettings.h resolves it: the user's choice, the theme's
+ * default (NBDockStyle in its Info.plist), else nextstep. */
++ (NSString *) dockStyle
+{
+  NSArray *styles = [NSArray arrayWithObjects:@"nextstep", @"mac", @"tiling", nil];
+  id style = [[NSUserDefaults standardUserDefaults]
+	       objectForKey:DockStyleDefaultsKey];
+
+  if ([style isKindOfClass:[NSString class]] && [styles containsObject:style])
+    {
+      return style;
+    }
+  style = [[[GSTheme theme] infoDictionary] objectForKey:DockStyleDefaultsKey];
+  if ([style isKindOfClass:[NSString class]] && [styles containsObject:style])
+    {
+      return style;
+    }
+  return @"nextstep";
+}
+
 - (DockPlacement) savedWindowServerDockPlacement
 {
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
@@ -547,27 +565,6 @@ modeValue(id modes, NSString *mode, NSString *key)
 {
   [[NSUserDefaults standardUserDefaults] setBool:showDockBorder
 					  forKey:DockShowBorderDefaultsKey];
-}
-
-/* The see-through panel behind the icons, as macOS's Dock has: chosen
-   with Workspace Preferences' Dock style, else shown only in the Mac
-   menu style (the menu bar is see-through there too). */
-- (BOOL) savedShowsPanelInMacMenuStyle: (BOOL)macMenuStyle
-{
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-
-  if ([defaults objectForKey:DockShowsPanelDefaultsKey] == nil)
-    return macMenuStyle;
-  return [defaults boolForKey:DockShowsPanelDefaultsKey];
-}
-
-/* Shown unless turned off (Workspace Preferences -> Dock). */
-- (BOOL) savedShowsSeparators
-{
-  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-
-  return [defaults objectForKey:DockShowsSeparatorsDefaultsKey] == nil
-    || [defaults boolForKey:DockShowsSeparatorsDefaultsKey];
 }
 
 - (NSInteger) savedDockCellSizeMode
