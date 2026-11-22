@@ -73,15 +73,8 @@
   if ([keys containsObject:@"DockHoverIconScale"])
     [self settingsController:nil
       didChangeHoverIconScale:[_preferences savedHoverIconScale]];
-  if ([keys containsObject:@"DockUseCellTileBackground"])
-    [self settingsController:nil
-      didChangeUseCellTileBackground:[self savedUseCellTileBackground]];
   if ([keys containsObject:@"DockShowBorder"])
     [self settingsController:nil didChangeShowDockBorder:[self savedShowDockBorder]];
-  if ([keys containsObject:@"DockShowsSeparators"])
-    [_dockView setShowsSeparators:[_preferences savedShowsSeparators]];
-  if ([keys containsObject:@"DockShowsPanel"])
-    [self updateDockPanel];
   if ([keys containsObject:@"DockWindowAlpha"])
     [self settingsController:nil didChangeWindowAlpha:[self savedWindowAlpha]];
   if ([keys containsObject:@"DockRunningIndicatorMode"])
@@ -100,11 +93,20 @@
   [defaults synchronize];
 }
 
-/* The panel follows the menu style until a Dock style is chosen. */
-- (void) updateDockPanel
+/* The Dock style (NBDockStyle, Workspace Preferences -> Desktop):
+ * NeXTSTEP's tiles without separators, or no tiles and the separators,
+ * on a see-through panel in the Mac style. */
+- (void) updateDockStyle
 {
-  [_dockView setShowsPanel:
-    [_preferences savedShowsPanelInMacMenuStyle:[self dockIsMacMenuStyle]]];
+  [self applyDockStyle:[DockPreferences dockStyle]];
+}
+
+- (void) applyDockStyle: (NSString *)style
+{
+  _useCellTileBackground = [style isEqual:@"nextstep"];
+  [_dockView setUsesCellBackgroundTile:_useCellTileBackground];
+  [_dockView setShowsSeparators:!_useCellTileBackground];
+  [_dockView setShowsPanel:[style isEqual:@"mac"]];
 }
 
 - (SettingsController *) settingsController

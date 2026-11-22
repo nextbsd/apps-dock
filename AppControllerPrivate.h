@@ -71,7 +71,8 @@
 - (DockPlacement) savedDockPlacement;
 - (void) desktopSettingsDidChange: (NSNotification *)notification;
 - (void) dockSettingsDidChange: (NSNotification *)notification;
-- (void) updateDockPanel;
+- (void) updateDockStyle;
+- (void) applyDockStyle: (NSString *)style;
 - (void) keepApplicationsRequested: (NSNotification *)notification;
 - (NSColor *) savedBackgroundColor;
 - (void) saveBackgroundColor;

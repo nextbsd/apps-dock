@@ -84,8 +84,7 @@
   [_dockView setBackgroundColor:_backgroundColor];
   [_dockView setBackgroundAlpha:_windowAlpha];
   [_dockView setShowsBorder:_showDockBorder];
-  [_dockView setShowsSeparators:[_preferences savedShowsSeparators]];
-  [self updateDockPanel];
+  [self updateDockStyle];
   [_dockView setRunningIndicatorMode:_runningIndicatorMode];
   [_dockView setMagnifiesHoveredIcons:_magnifiesHoveredIcons];
   [_dockView setHoverIconScale:_hoverIconScale];
