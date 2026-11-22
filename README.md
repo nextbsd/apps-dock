@@ -423,7 +423,10 @@ Run `sh Tests/run-icon-manager-preferences.sh` to check defaults, persistence,
 and per-application overrides using an isolated defaults database.
 
 The Workspace tile comes first, then the kept applications, then the
-running applications that aren't kept. A kept application's tile stays
+running applications that aren't kept. The Workspace tile is
+`Workspace.app` from the first Applications folder that has it, else from
+`/System/Library/CoreServices`, where the `NextBSD-desktop` package
+installs it. A kept application's tile stays
 whether or not the application runs (without a running dot when it
 doesn't, and a click launches it); an application that isn't kept shows
 only while it runs. Every running application has a tile.

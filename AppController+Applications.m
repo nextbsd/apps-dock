@@ -379,14 +379,26 @@
 	   isEqualToOrDescendantOfPath:@"/System/Library/CoreServices"];
 }
 
-/* Workspace.app from the first Applications folder that has it, or nil. */
+/* Workspace.app from the first Applications folder that has it, else from
+ * a Library's CoreServices (/System/Library/CoreServices, where the
+ * NextBSD-desktop package installs it), or nil. A copy in ~/Applications
+ * comes first, as the login session starts that one. */
 - (NSString *) workspaceApplicationPath
 {
-  NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationDirectory,
-						       NSAllDomainsMask,
-						       YES);
+  NSMutableArray *paths = [NSMutableArray arrayWithArray:
+    NSSearchPathForDirectoriesInDomains(NSApplicationDirectory,
+					NSAllDomainsMask,
+					YES)];
+  NSArray *libraries = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory,
+							   NSAllDomainsMask,
+							   YES);
   NSUInteger i;
 
+  for (i = 0; i < [libraries count]; i++)
+    {
+      [paths addObject:[[libraries objectAtIndex:i]
+			 stringByAppendingPathComponent:@"CoreServices"]];
+    }
   for (i = 0; i < [paths count]; i++)
     {
       NSString *path = [[paths objectAtIndex:i]
