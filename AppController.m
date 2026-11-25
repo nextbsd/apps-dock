@@ -21,6 +21,15 @@
 
 @implementation AppController
 
+- (id) init
+{
+  if ((self = [super init]) != nil)
+    {
+      _exitQueue = -1;
+    }
+  return self;
+}
+
 - (void) applicationDidFinishLaunching: (NSNotification *)notification
 {
   NSRect frame;
@@ -171,6 +180,7 @@
   [_scanTimer invalidate];
   [_processScanTimer invalidate];
   [_applicationExitTimer invalidate];
+  [self stopWatchingApplicationExits];
   DESTROY(_settingsController);
   DESTROY(_recyclerController);
   DESTROY(_preferences);
