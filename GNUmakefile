@@ -63,6 +63,8 @@ Resources/Recycler.GNUstep.xpm \
 Resources/gnustep_whale.png \
 Resources/GNUstep_circle.png
 
+# Loop-scoped declarations: GCC's Objective-C default predates C99.
+ADDITIONAL_OBJCFLAGS += -std=gnu99
 ADDITIONAL_OBJCFLAGS += $(shell pkg-config --cflags x11 xext 2>/dev/null)
 Dock_TOOL_LIBS += $(shell pkg-config --libs x11 xext 2>/dev/null)
 
