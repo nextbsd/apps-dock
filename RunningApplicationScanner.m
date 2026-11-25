@@ -328,13 +328,17 @@ KernelExecutablePath(pid_t pid, char *buffer, size_t size)
 }
 
 /* Executable path of every process of this user, keyed by process id.
- * Read from /proc where it is mounted; NextBSD doesn't mount it, so there
- * the kernel is asked directly. */
+ * FreeBSD asks the kernel for this user's processes only, even where
+ * linprocfs is mounted: walking /proc reads every process on the system and
+ * looks the mount up again for each, and the Dock does this twice a second.
+ * Elsewhere it reads /proc. */
 - (NSDictionary *) runningProcessPathsByIdentifier
 {
   NSMutableDictionary *result = [NSMutableDictionary dictionary];
-  NSString *procPath = [self procFilesystemPath];
   NSUInteger i;
+
+#if !defined(__FreeBSD__)
+  NSString *procPath = [self procFilesystemPath];
 
   if ([procPath length])
     {
@@ -358,10 +362,8 @@ KernelExecutablePath(pid_t pid, char *buffer, size_t size)
 	      [result setObject:path forKey:pid];
 	    }
 	}
-      return result;
     }
-
-#if defined(__FreeBSD__)
+#else
   {
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_UID, (int)getuid() };
     struct kinfo_proc *procs = NULL;
@@ -417,27 +419,28 @@ KernelExecutablePath(pid_t pid, char *buffer, size_t size)
 
 - (NSString *) executablePathForProcessIdentifier: (NSNumber *)processIdentifier
 {
-  NSString *linkPath;
   char target[PATH_MAX];
+#if !defined(__FreeBSD__)
+  NSString *linkPath;
   ssize_t length;
+#endif
 
   if (![processIdentifier isKindOfClass:[NSNumber class]])
     {
       return nil;
     }
 
+#if defined(__FreeBSD__)
+  if (!KernelExecutablePath([processIdentifier intValue], target,
+			    sizeof(target)))
+    {
+      return nil;
+    }
+  return [self normalizedPath:[NSString stringWithUTF8String:target]];
+#else
   if ([[self procFilesystemPath] length] == 0)
     {
-#if defined(__FreeBSD__)
-      if (!KernelExecutablePath([processIdentifier intValue], target,
-				sizeof(target)))
-	{
-	  return nil;
-	}
-      return [self normalizedPath:[NSString stringWithUTF8String:target]];
-#else
       return nil;
-#endif
     }
 
   linkPath = [[self procPathForProcessIdentifierString:
@@ -453,6 +456,7 @@ KernelExecutablePath(pid_t pid, char *buffer, size_t size)
 
   target[length] = '\0';
   return [self normalizedPath:[NSString stringWithUTF8String:target]];
+#endif
 }
 
 - (NSArray *) runningProcessIdentifiersForApplicationItem: (DockItem *)item

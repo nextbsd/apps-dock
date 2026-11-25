@@ -51,6 +51,9 @@
   NSTimer *_scanTimer;
   NSTimer *_processScanTimer;
   NSTimer *_applicationExitTimer;
+  /* kqueue reporting exits of running apps' processes; -1 when the
+   * exit timer polls instead. */
+  int _exitQueue;
   DockPlacement _dockPlacement;
   DockAlignment _dockAlignment;
   NSInteger _dockCellSizeMode;

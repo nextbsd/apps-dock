@@ -18,6 +18,18 @@
  */
 
 #import "AppControllerPrivate.h"
+#if defined(__FreeBSD__)
+#import <sys/types.h>
+#import <sys/event.h>
+#import <fcntl.h>
+#endif
+
+static NSArray *
+exitWatchModes(void)
+{
+  return [NSArray arrayWithObjects:NSDefaultRunLoopMode,
+		  NSEventTrackingRunLoopMode, NSModalPanelRunLoopMode, nil];
+}
 
 @implementation AppController (Scanning)
 
@@ -60,7 +72,7 @@
 							 userInfo:nil
 							  repeats:YES];
     }
-  if (!_applicationExitTimer)
+  if (!_applicationExitTimer && ![self startWatchingApplicationExits])
     {
       _applicationExitTimer = [NSTimer scheduledTimerWithTimeInterval:0.5
                                target:self
@@ -68,6 +80,153 @@
                                userInfo:nil repeats:YES];
     }
   [self launchOpenAtLoginApplications];
+}
+
+/* On WindowServer the kernel reports when a running app's process exits,
+ * so nothing polls while the desktop is idle. X11 window items still need
+ * the exit timer, as does a system without kqueue. */
+- (BOOL) startWatchingApplicationExits
+{
+#if defined(__FreeBSD__)
+  NSArray *modes = exitWatchModes();
+  NSUInteger i;
+
+  _exitQueue = -1;
+  if (![_windowManager isKindOfClass:[WSDockManager class]])
+    {
+      return NO;
+    }
+  _exitQueue = kqueue();
+  if (_exitQueue < 0)
+    {
+      return NO;
+    }
+  fcntl(_exitQueue, F_SETFD, FD_CLOEXEC);
+  for (i = 0; i < [modes count]; i++)
+    {
+      [[NSRunLoop currentRunLoop] addEvent:(void *)(intptr_t)_exitQueue
+				      type:ET_RDESC
+				   watcher:(id<RunLoopEvents>)self
+				   forMode:[modes objectAtIndex:i]];
+    }
+  [self watchRunningApplicationExits];
+  return YES;
+#else
+  _exitQueue = -1;
+  return NO;
+#endif
+}
+
+- (void) stopWatchingApplicationExits
+{
+  NSArray *modes = exitWatchModes();
+  NSUInteger i;
+
+  if (_exitQueue < 0)
+    {
+      return;
+    }
+  for (i = 0; i < [modes count]; i++)
+    {
+      [[NSRunLoop currentRunLoop] removeEvent:(void *)(intptr_t)_exitQueue
+					 type:ET_RDESC
+				      forMode:[modes objectAtIndex:i]
+					  all:YES];
+    }
+  close(_exitQueue);
+  _exitQueue = -1;
+}
+
+/* Ask for an exit event from each process of a running app and of
+ * Workspace. Watching a process already watched changes nothing; a process
+ * gone before it is watched is caught by the next exit scan. */
+- (void) watchRunningApplicationExits
+{
+#if defined(__FreeBSD__)
+  NSDictionary *running;
+  NSMutableArray *items;
+  NSString *workspacePath;
+  NSEnumerator *e;
+  NSNumber *pid;
+  BOOL missed = NO;
+  NSUInteger i;
+
+  if (_exitQueue < 0)
+    {
+      return;
+    }
+
+  items = [NSMutableArray array];
+  for (i = 0; i < [_items count]; i++)
+    {
+      DockItem *item = [_items objectAtIndex:i];
+
+      if ([item kind] == DockItemApplication &&
+	  [item state] != DockItemNotRunning)
+	{
+	  [items addObject:item];
+	}
+    }
+  workspacePath = [self workspaceApplicationPath];
+  if ([workspacePath length])
+    {
+      [items addObject:[DockItem applicationItemWithPath:workspacePath]];
+    }
+
+  running = [_applicationScanner runningProcessPathsByIdentifier];
+  e = [running keyEnumerator];
+  while ((pid = [e nextObject]) != nil)
+    {
+      NSString *path = [running objectForKey:pid];
+      struct kevent change;
+
+      for (i = 0; i < [items count]; i++)
+	{
+	  if ([_applicationScanner applicationItem:[items objectAtIndex:i]
+				 matchesRunningProcessPath:path])
+	    {
+	      break;
+	    }
+	}
+      if (i == [items count])
+	{
+	  continue;
+	}
+      EV_SET(&change, [pid intValue], EVFILT_PROC, EV_ADD | EV_ONESHOT,
+	     NOTE_EXIT, 0, NULL);
+      if (kevent(_exitQueue, &change, 1, NULL, 0, NULL) != 0)
+	{
+	  missed = YES;
+	}
+    }
+  if (missed)
+    {
+      [self performSelector:@selector(scanForExitedApplications)
+		 withObject:nil
+		 afterDelay:0.0];
+    }
+#endif
+}
+
+- (void) receivedEvent: (void *)data
+		  type: (RunLoopEventType)type
+		 extra: (void *)extra
+	       forMode: (NSString *)mode
+{
+#if defined(__FreeBSD__)
+  struct kevent events[16];
+  struct timespec now = { 0, 0 };
+
+  if (_exitQueue < 0 || (intptr_t)data != _exitQueue)
+    {
+      return;
+    }
+  while (kevent(_exitQueue, NULL, 0, events, 16, &now) > 0)
+    {
+      continue;
+    }
+  [self scanForExitedApplications];
+#endif
 }
 
 /* Check exits independently of discovery, missing-file checks and recycler
@@ -125,6 +284,7 @@
       [self pruneApplicationIconUpdatesForExitedProcesses];
       [self refreshDock];
     }
+  [self watchRunningApplicationExits];
 }
 
 /* The top tile is Workspace's: it shows the running indicator whenever
@@ -249,6 +409,7 @@
     }
 
   [self updateRecyclerState];
+  [self watchRunningApplicationExits];
 }
 
 @end
