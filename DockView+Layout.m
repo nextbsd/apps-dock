@@ -45,14 +45,43 @@
 }
 
 
+/* As a taskbar along a row that fills its edge: where the Workspace
+ * tile goes so that it and the apps after it sit in the middle of the
+ * row, clear of the extras and the Recycler at its right end. Else the
+ * padding. */
+- (CGFloat) leadingOffset
+{
+  NSUInteger count = [_items count];
+  NSUInteger slots = count;
+  CGFloat length;
+  CGFloat start;
+  CGFloat limit;
+  NSRect end;
+
+  if (!_taskbar || !_horizontal || !_fillsColumn)
+    {
+      return _dockPad;
+    }
+  if (_allowsGaps)
+    for (NSUInteger i = 0; i < count; i++)
+      if ([[_items objectAtIndex:i] isPinned] && [[_items objectAtIndex:i] gapBefore]) slots++;
+  length = _cellSize + slots * (_cellSize + _dockGap)
+    + (count ? [self sectionGapsBeforeIndex:count - 1] : 0) * [self sectionGap];
+  start = floor((NSWidth([self bounds]) - length) / 2.0);
+  end = [_extras count] ? [self extraCellAtIndex:0] : [self recyclerTileRect];
+  limit = NSMinX(end) - [self sectionGap] - length;
+  return MAX(_dockPad, MIN(start, limit));
+}
+
+
 /* The Workspace tile: first along the Dock, at the top of a column or
- * the left end of a row. */
+ * the left end of a row (a taskbar's apps start in its middle). */
 - (NSRect) topTileRect
 {
   NSRect bounds = [self bounds];
   if (_horizontal)
     {
-      return NSMakeRect(_dockPad,
+      return NSMakeRect([self leadingOffset],
 			[self crossOffset],
 			_cellSize,
 			_cellSize);
