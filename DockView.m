@@ -349,6 +349,21 @@
   return _showsPanel;
 }
 
+- (void) setTaskbar: (BOOL)taskbar
+{
+  if (_taskbar != taskbar)
+    {
+      _taskbar = taskbar;
+      [self syncIconWindows];
+      [self setNeedsDisplay:YES];
+    }
+}
+
+- (BOOL) taskbar
+{
+  return _taskbar;
+}
+
 - (void) setTopTileIcon: (NSImage *)icon
 {
   ASSIGN(_topTileIcon, icon ? icon : [self loadGNUstepIcon]);

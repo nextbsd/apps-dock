@@ -95,7 +95,9 @@
 
 /* The Dock style (NBDockStyle, Workspace Preferences -> Desktop):
  * NeXTSTEP's tiles without separators, or no tiles and the separators,
- * on a see-through panel in the Mac style. */
+ * on a see-through panel in the Mac style, or Windows' taskbar (saved
+ * as "tiling", the style's name before it was Windows): a bar with no
+ * separators, the apps in its middle. */
 - (void) updateDockStyle
 {
   [self applyDockStyle:[DockPreferences dockStyle]];
@@ -105,8 +107,9 @@
 {
   _useCellTileBackground = [style isEqual:@"nextstep"];
   [_dockView setUsesCellBackgroundTile:_useCellTileBackground];
-  [_dockView setShowsSeparators:!_useCellTileBackground];
+  [_dockView setShowsSeparators:[style isEqual:@"mac"]];
   [_dockView setShowsPanel:[style isEqual:@"mac"]];
+  [_dockView setTaskbar:[style isEqual:@"tiling"]];
 }
 
 - (SettingsController *) settingsController

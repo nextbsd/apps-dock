@@ -107,6 +107,7 @@ typedef enum
   BOOL _showsBorder;
   BOOL _showsSeparators;
   BOOL _showsPanel;
+  BOOL _taskbar;
   BOOL _magnifiesHoveredIcons;
   DockRunningIndicatorMode _runningIndicatorMode;
   BOOL _recyclerHasContents;
@@ -154,6 +155,11 @@ typedef enum
  * background alpha), as macOS's Dock has; never with cell tiles. */
 - (void) setShowsPanel: (BOOL)showsPanel;
 - (BOOL) showsPanel;
+/* The Windows style: along the bottom, as Windows 11's taskbar, a bar
+ * across the whole edge with the apps in its middle, the extras and the
+ * Recycler at its right end, and a short line under a running app. */
+- (void) setTaskbar: (BOOL)taskbar;
+- (BOOL) taskbar;
 - (void) setRunningIndicatorMode: (DockRunningIndicatorMode)mode;
 /* The top tile's icon: Workspace's, or the GNUstep logo when nil. */
 - (void) setTopTileIcon: (NSImage *)icon;

@@ -273,6 +273,22 @@
       return;
     }
 
+  /* A taskbar marks a running app as Windows 11 does: a short rounded
+     line under it. */
+  if (_taskbar)
+    {
+      CGFloat w = 7.0 * scale;
+      CGFloat h = MAX(2.0, 3.0 * scale);
+      NSRect line = NSMakeRect(floor(NSMidX(cell) - w / 2.0),
+                               NSMinY(cell) + 1.0 * scale, w, h);
+
+      [[NSColor colorWithCalibratedWhite:0.78 alpha:0.95] set];
+      [[NSBezierPath bezierPathWithRoundedRect:line
+                                       xRadius:h / 2.0
+                                       yRadius:h / 2.0] fill];
+      return;
+    }
+
   x = NSMidX(cell) - dotSize / 2.0;
 
   [[NSColor colorWithCalibratedWhite:0.0 alpha:0.65] set];
@@ -634,6 +650,24 @@
 - (void) drawRect: (NSRect)dirtyRect
 {
   NSRectFillUsingOperation(dirtyRect, NSCompositeClear);
+  /* A taskbar: the background color across the whole bar, nearly
+     opaque as Windows 11's is, with a faint line along its inner edge. */
+  if (_taskbar)
+    {
+      NSRect bounds = [self bounds];
+      CGFloat alpha = MAX(0.88, _backgroundAlpha);
+      BOOL atBottom = NSMinY([[self window] frame]) < 1.0;
+      NSRect line = atBottom
+        ? NSMakeRect(0, NSMaxY(bounds) - 1.0, NSWidth(bounds), 1.0)
+        : NSMakeRect(0, 0, NSWidth(bounds), 1.0);
+
+      [[_backgroundColor colorWithAlphaComponent:
+         [_backgroundColor alphaComponent] * alpha] set];
+      NSRectFill(bounds);
+      [[NSColor colorWithCalibratedWhite:1.0 alpha:0.10] set];
+      NSRectFillUsingOperation(line, NSCompositeSourceOver);
+      return;
+    }
   if (!_showsPanel || _usesCellBackgroundTile || _backgroundAlpha <= 0.0)
     {
       return;
