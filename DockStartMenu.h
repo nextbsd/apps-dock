@@ -23,16 +23,15 @@
  * The Windows style's Start menu: the taskbar's cube and a tap of the
  * Start (Command) key on its own open it (WindowServer sends the tap to a
  * Dock that shows a Start menu). A search field that finds apps, settings
- * and recent files as you type; the pinned apps; All apps, every app in
- * /System/Applications, /Local/Applications and ~/Applications; recent
- * files, from Workspace's history; and the user, with a power menu (Log
- * Out, Restart, Shut Down), which asks loginwindow through its control
- * socket. It closes on Escape, on a click elsewhere, and once something
- * opens.
+ * and files in Desktop, Documents and Downloads as you type; the pinned
+ * apps; All apps, every app in /System/Applications, /Local/Applications
+ * and ~/Applications; and the user, with a power menu (Log Out, Restart,
+ * Shut Down), which asks loginwindow through its control socket. It closes
+ * on Escape, on a click elsewhere, and once something opens.
  *
  * The pinned apps are the Dock's StartPinnedApplications default (app
- * paths), else a list of NextBSD's own apps; those not installed are left
- * out.
+ * paths), else NextBSD's own apps; those not installed are left out. A
+ * right click on an app pins it to Start or unpins it.
  */
 @interface DockStartMenu : NSPanel
 {

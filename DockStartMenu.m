@@ -26,7 +26,7 @@
 #include <unistd.h>
 
 #define StartWidth 640.0
-#define StartHeight 592.0
+#define StartHeight 448.0
 #define StartPad 28.0
 #define StartColumns 6
 #define StartCellHeight 86.0
@@ -102,6 +102,8 @@ StartAskLoginWindow(const char *what)
   NSInteger _hover;
   CGFloat _scroll;
   BOOL _powerOpen;		/* the power button's flyout */
+  NSDictionary *_pinFor;	/* the app a right click opened Pin/Unpin for */
+  NSPoint _pinAt;
 }
 - (id) initWithFrame: (NSRect)frame menu: (DockStartMenu *)menu;
 - (void) reload;
@@ -110,7 +112,8 @@ StartAskLoginWindow(const char *what)
 @interface DockStartMenu (Private)
 - (NSArray *) applications;
 - (NSArray *) pinnedApplications;
-- (NSArray *) recentFiles;
+- (BOOL) isPinned: (NSString *)path;
+- (void) setApplication: (NSString *)path pinned: (BOOL)flag;
 - (NSString *) query;
 - (BOOL) showsAllApps;
 - (void) setShowsAllApps: (BOOL)flag;
@@ -306,29 +309,57 @@ StartAskLoginWindow(const char *what)
 	     selector:@selector(localizedCaseInsensitiveCompare:)])]];
 }
 
-/* The pinned apps: the user's, else NextBSD's own, if installed. File
-   Viewer comes first: it opens a File Viewer, as the cube does elsewhere. */
-- (NSArray *) pinnedApplications
+/* The pinned apps' paths: the user's, else NextBSD's own. */
+- (NSArray *) pinnedPaths
 {
   NSArray *paths = [[NSUserDefaults standardUserDefaults]
 		     arrayForKey:StartPinnedKey];
-  NSMutableArray *pinned = [NSMutableArray array];
-  NSFileManager *fm = [NSFileManager defaultManager];
   NSUInteger i;
 
   if (paths == nil)
     {
+      /* NextBSD's own apps; the settings apps are a search or All
+	 apps away, and anyone can pin the ones they use. */
       NSArray *names = [NSArray arrayWithObjects:@"Terminal", @"TextEdit",
-	  @"Software", @"Update", @"Displays", @"Network", @"Sound",
-	  @"Bluetooth", @"Keyboard", @"Mouse", @"Trackpad", @"Energy",
-	  @"Date & Time", @"Printers", @"Users & Login", @"Webcam",
-	  @"Installer", nil];
+	  @"Software", @"Update", nil];
       NSMutableArray *defaults = [NSMutableArray array];
       for (i = 0; i < [names count]; i++)
 	[defaults addObject:[NSString stringWithFormat:
 	    @"/System/Applications/%@.app", [names objectAtIndex:i]]];
       paths = defaults;
     }
+  return paths;
+}
+
+- (BOOL) isPinned: (NSString *)path
+{
+  return [[self pinnedPaths] containsObject:path];
+}
+
+/* Pin to Start adds the app at the end; Unpin takes it out. The list is
+   the user's from then on (StartPinnedApplications). */
+- (void) setApplication: (NSString *)path pinned: (BOOL)flag
+{
+  NSMutableArray *paths = [NSMutableArray arrayWithArray:[self pinnedPaths]];
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+
+  [paths removeObject:path];
+  if (flag)
+    [paths addObject:path];
+  [defaults setObject:paths forKey:StartPinnedKey];
+  [defaults synchronize];
+  [(DockStartView *)_content reload];
+}
+
+/* The pinned apps that are installed. File Viewer comes first and always
+   stays: it opens a File Viewer, as the cube does elsewhere. */
+- (NSArray *) pinnedApplications
+{
+  NSArray *paths = [self pinnedPaths];
+  NSMutableArray *pinned = [NSMutableArray array];
+  NSFileManager *fm = [NSFileManager defaultManager];
+  NSUInteger i;
+
   [pinned addObject:[NSDictionary dictionaryWithObjectsAndKeys:
       @"fileviewer", @"kind", @"File Viewer", @"title", nil]];
   for (i = 0; i < [paths count] && [pinned count] < 3 * StartColumns; i++)
@@ -341,38 +372,6 @@ StartAskLoginWindow(const char *what)
 	    nil]];
     }
   return pinned;
-}
-
-/* Workspace's recent files (org.nextbsd.Workspace RecentFiles), newest
-   first, those still there. */
-- (NSArray *) recentFiles
-{
-  NSDictionary *domain = [[NSUserDefaults standardUserDefaults]
-			   persistentDomainForName:@"org.nextbsd.Workspace"];
-  NSArray *records = [domain objectForKey:@"RecentFiles"];
-  NSMutableArray *files = [NSMutableArray array];
-  NSFileManager *fm = [NSFileManager defaultManager];
-  NSUInteger i;
-
-  if (![records isKindOfClass:[NSArray class]])
-    return files;
-  for (i = 0; i < [records count] && [files count] < 4; i++)
-    {
-      NSDictionary *record = [records objectAtIndex:i];
-      NSString *path;
-      NSDate *date;
-      if (![record isKindOfClass:[NSDictionary class]])
-	continue;
-      path = [record objectForKey:@"path"];
-      date = [record objectForKey:@"accessed"];
-      if (![path isKindOfClass:[NSString class]] || ![fm fileExistsAtPath:path])
-	continue;
-      [files addObject:[NSDictionary dictionaryWithObjectsAndKeys:
-	  @"file", @"kind", path, @"path", [path lastPathComponent], @"title",
-	  [date isKindOfClass:[NSDate class]] ? (id)date : (id)[NSNull null],
-	  @"date", nil]];
-    }
-  return files;
 }
 
 - (void) openItem: (NSDictionary *)item
@@ -450,6 +449,7 @@ StartAskLoginWindow(const char *what)
 - (void) dealloc
 {
   RELEASE(_items);
+  RELEASE(_pinFor);
   DEALLOC;
 }
 
@@ -471,7 +471,7 @@ StartAskLoginWindow(const char *what)
 }
 
 /* What the menu shows now, and where: search results, All apps, or the
-   pinned apps and recent files. */
+   pinned apps. */
 - (void) reload
 {
   NSString *query = [_owner query];
@@ -482,6 +482,8 @@ StartAskLoginWindow(const char *what)
   _hover = -1;
   if ([query length] > 0)
     _powerOpen = NO;
+  if (_powerOpen)
+    DESTROY(_pinFor);
   if ([query length] > 0)
     {
       NSMutableArray *results = [NSMutableArray array];
@@ -538,7 +540,6 @@ StartAskLoginWindow(const char *what)
   else
     {
       NSArray *pinned = [_owner pinnedApplications];
-      NSArray *recent = [_owner recentFiles];
       CGFloat cell = (StartWidth - 2 * 18) / StartColumns;
       [self addItem:[NSDictionary dictionaryWithObjectsAndKeys:
 	  @"allapps", @"kind", @"All apps", @"title", nil]
@@ -548,11 +549,6 @@ StartAskLoginWindow(const char *what)
 		 rect:NSMakeRect(18 + (i % StartColumns) * cell,
 				 top + 30 + (i / StartColumns) * StartCellHeight,
 				 cell - 2, StartCellHeight - 4)];
-      y = top + 30 + 3 * StartCellHeight + 36;
-      for (i = 0; i < [recent count]; i++)
-	[self addItem:[recent objectAtIndex:i]
-		 rect:NSMakeRect(20 + (i % 2) * (StartWidth - 40) / 2,
-				 y + (i / 2) * 48, (StartWidth - 40) / 2 - 10, 44)];
     }
   [self addItem:[NSDictionary dictionaryWithObjectsAndKeys:
       @"power", @"kind", @"Power", @"title", nil]
@@ -571,9 +567,23 @@ StartAskLoginWindow(const char *what)
       for (i = 0; i < 3; i++)
 	[self addItem:[NSDictionary dictionaryWithObjectsAndKeys:
 	    [kinds objectAtIndex:i], @"kind", [titles objectAtIndex:i], @"title",
-	    nil]
+	    [NSNumber numberWithInt:i == 0 ? 3 : 0], @"box", nil]
 		 rect:NSMakeRect(StartWidth - StartPad - 210, top + 4 + i * 32,
 				 202, 30)];
+    }
+  if (_pinFor != nil)
+    {
+      /* Where the right click was, kept inside the panel. */
+      BOOL pinned = [_owner isPinned:[_pinFor objectForKey:@"path"]];
+      NSRect r = NSMakeRect(MIN(_pinAt.x, StartWidth - 196), _pinAt.y, 180, 30);
+
+      if (NSMaxY(r) > StartHeight - 8)
+	r.origin.y = StartHeight - 8 - 30;
+      [self addItem:[NSDictionary dictionaryWithObjectsAndKeys:
+	  pinned ? @"unpin" : @"pin", @"kind",
+	  pinned ? @"Unpin from Start" : @"Pin to Start", @"title",
+	  [NSNumber numberWithInt:1], @"box", nil]
+	       rect:r];
     }
   [self setNeedsDisplay:YES];
 }
@@ -616,6 +626,20 @@ StartAskLoginWindow(const char *what)
 
   item = i >= 0 ? [_items objectAtIndex:i] : nil;
   kind = [item objectForKey:@"kind"];
+  if (_pinFor != nil)
+    {
+      /* Pin or Unpin, or a click elsewhere, closes it. */
+      NSString *path = [_pinFor objectForKey:@"path"];
+      BOOL chosen = [kind isEqual:@"pin"] || [kind isEqual:@"unpin"];
+
+      AUTORELEASE(RETAIN(path));
+      DESTROY(_pinFor);
+      if (chosen)
+	[_owner setApplication:path pinned:[kind isEqual:@"pin"]];
+      else
+	[self reload];
+      return;
+    }
   if ([kind isEqual:@"power"] || (_powerOpen && ![kind isEqual:@"logout"]
       && ![kind isEqual:@"restart"] && ![kind isEqual:@"shutdown"]))
     {
@@ -634,6 +658,23 @@ StartAskLoginWindow(const char *what)
     [_owner shutDown:nil];
   else if (item != nil)
     [_owner openItem:item];
+}
+
+/* A right click on an app: Pin to Start or Unpin from Start. */
+- (void) rightMouseDown: (NSEvent *)event
+{
+  NSPoint p = [self convertPoint:[event locationInWindow] fromView:nil];
+  NSInteger i = [self itemAtPoint:p];
+  NSDictionary *item = i >= 0 ? [_items objectAtIndex:i] : nil;
+
+  _powerOpen = NO;
+  DESTROY(_pinFor);
+  if ([[item objectForKey:@"kind"] isEqual:@"app"])
+    {
+      ASSIGN(_pinFor, item);
+      _pinAt = p;
+    }
+  [self reload];
 }
 
 - (void) scrollWheel: (NSEvent *)event
@@ -712,9 +753,6 @@ StartAskLoginWindow(const char *what)
     {
       [@"Pinned" drawAtPoint:NSMakePoint(StartPad + 2, 80)
 	      withAttributes:[self textAttributes:14 weight:YES color:text]];
-      [@"Recent" drawAtPoint:NSMakePoint(StartPad + 2,
-					 78 + 30 + 3 * StartCellHeight + 12)
-	      withAttributes:[self textAttributes:14 weight:YES color:text]];
     }
 
   for (i = 0; i < [_items count]; i++)
@@ -757,13 +795,16 @@ StartAskLoginWindow(const char *what)
 	  continue;
 	}
       if ([kind isEqual:@"logout"] || [kind isEqual:@"restart"]
-	  || [kind isEqual:@"shutdown"])
+	  || [kind isEqual:@"shutdown"] || [kind isEqual:@"pin"]
+	  || [kind isEqual:@"unpin"])
 	{
-	  if ([kind isEqual:@"logout"])
+	  int rows = [[item objectForKey:@"box"] intValue];
+
+	  if (rows > 0)
 	    {
-	      /* The flyout's box, behind its three rows. */
+	      /* The flyout's box, behind its rows. */
 	      NSRect box = NSMakeRect(NSMinX(r) - 4, NSMinY(r) - 4,
-				      NSWidth(r) + 8, 3 * 32 + 6);
+				      NSWidth(r) + 8, rows * 32 + 4);
 	      [StartColor(0x2e3139, 0xffffff) set];
 	      [[NSBezierPath bezierPathWithRoundedRect:box xRadius:8
 					       yRadius:8] fill];
