@@ -59,6 +59,14 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
 @optional
 /* The Start key was tapped on its own (after -setShowsStartMenu:YES). */
 - (void) wsDockManagerStartKey: (WSDockManager *)manager;
+@optional
+/* A screenshot key (Command+Shift+3, 4, 5 or Print Screen) that
+ * WindowServer took from the app in front: action is
+ * WS_SCREENSHOT_SCREEN, _SELECTION or _TOOLBAR, and clipboard says
+ * Control was held. */
+- (void) wsDockManager: (WSDockManager *)manager
+	 screenshotKey: (unsigned)action
+	     clipboard: (BOOL)clipboard;
 @end
 
 @interface WSDockManager : NSObject

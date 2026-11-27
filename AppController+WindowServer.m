@@ -25,6 +25,9 @@
 
 #import "AppControllerPrivate.h"
 #import "DockViewPrivate.h"
+#ifdef DOCK_HAVE_WINDOWSERVER
+#import <WindowServer/WSClient.h>
+#endif
 
 /* Processes that had windows at the last window list, to notice new
  * apps without waiting for the next process scan. */
@@ -33,6 +36,53 @@ static NSSet *knownWindowProcesses = nil;
 /* Minimized-window tiles are drawn at twice the 64-point cell. */
 #define DockMinimizedTileSize 128.0
 #define DockMinimizedBadgeSize 56.0
+
+#ifdef WS_DOCK_SCREENSHOT_KEYS
+/*
+ * The screenshot keys (nextbsd/nextbsd#715). WindowServer takes
+ * Command+Shift+3, 4, 5 and Print Screen from every app and gives them
+ * to the Dock, which hands them to Screenshot.app (apps-settings), as
+ * SystemUIServer hands them to screencaptureui on a Mac: to the copy
+ * already running, through its Distributed Objects name, or else by
+ * starting it with the request on its command line. The names are
+ * Screenshot's (Screenshot/SSRequest.h in apps-settings).
+ */
+#define DockScreenshotConnection @"org.nextbsd.Screenshot"
+
+/* What Screenshot's Distributed Objects root answers. */
+@protocol DockScreenshotServer
+- (oneway void) performRequest: (bycopy NSDictionary *)request;
+@end
+
+/* Where Screenshot.app is: /System/Applications first, the copy
+ * WindowServer trusts to capture without asking. */
+static NSString *
+screenshotApplicationPath(void)
+{
+  NSFileManager *manager = [NSFileManager defaultManager];
+  NSArray *folders = [NSArray arrayWithObjects:@"/System/Applications",
+			      @"/Local/Applications",
+			      @"/Network/Applications",
+			      [NSHomeDirectory()
+				stringByAppendingPathComponent:@"Applications"],
+			      nil];
+  NSUInteger i;
+
+  for (i = 0; i < [folders count]; i++)
+    {
+      NSString *path = [[folders objectAtIndex:i]
+			 stringByAppendingPathComponent:
+			   @"Screenshot.app/Screenshot"];
+
+      if ([manager isExecutableFileAtPath:path])
+	{
+	  return path;
+	}
+    }
+  return nil;
+}
+
+#endif
 
 @implementation AppController (WindowServer)
 
@@ -215,6 +265,73 @@ static NSSet *knownWindowProcesses = nil;
   if ([_dockView taskbar])
     [self toggleStartMenu];
 }
+
+#ifdef WS_DOCK_SCREENSHOT_KEYS
+- (void) wsDockManager: (WSDockManager *)manager
+	 screenshotKey: (unsigned)action
+	     clipboard: (BOOL)clipboard
+{
+  NSString *name = action == WS_SCREENSHOT_SCREEN ? @"screen"
+    : action == WS_SCREENSHOT_SELECTION ? @"selection" : @"toolbar";
+  NSDictionary *request = [NSDictionary dictionaryWithObjectsAndKeys:
+					  name, @"Action",
+					[NSNumber numberWithBool:clipboard],
+					@"Clipboard", nil];
+  NSString *path;
+  id proxy = nil;
+
+  NS_DURING
+    {
+      NSConnection *connection = [NSConnection
+	connectionWithRegisteredName:DockScreenshotConnection
+				host:@""
+		     usingNameServer:[NSMessagePortNameServer sharedInstance]];
+
+      if (connection != nil)
+	{
+	  [connection setRequestTimeout:2.0];
+	  [connection setReplyTimeout:2.0];
+	  proxy = [connection rootProxy];
+	  [proxy setProtocolForProxy:@protocol(DockScreenshotServer)];
+	  [(id <DockScreenshotServer>)proxy performRequest:request];
+	}
+    }
+  NS_HANDLER
+    {
+      NSLog(@"Screenshot didn't take the screenshot key: %@",
+	    localException);
+      proxy = nil;
+    }
+  NS_ENDHANDLER
+  if (proxy != nil)
+    {
+      return;
+    }
+  path = screenshotApplicationPath();
+  if (path == nil)
+    {
+      NSLog(@"A screenshot key, but Screenshot.app isn't installed");
+      return;
+    }
+  NS_DURING
+    {
+      NSMutableArray *args = [NSMutableArray arrayWithObjects:
+					       @"-Shortcut", name, nil];
+
+      if (clipboard)
+	{
+	  [args addObject:@"-Clipboard"];
+	  [args addObject:@"YES"];
+	}
+      [NSTask launchedTaskWithLaunchPath:path arguments:args];
+    }
+  NS_HANDLER
+    {
+      NSLog(@"Screenshot.app couldn't be started: %@", localException);
+    }
+  NS_ENDHANDLER
+}
+#endif /* WS_DOCK_SCREENSHOT_KEYS */
 
 - (void) wsDockManagerMenuBarDidChange: (WSDockManager *)manager
 {

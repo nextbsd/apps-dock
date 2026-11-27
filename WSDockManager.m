@@ -177,6 +177,12 @@ watchedModes(void)
   if (_showsStartMenu)
     ws_dock_set_start_menu(conn, 1);
 #endif
+#ifdef WS_DOCK_SCREENSHOT_KEYS
+  /* The screenshot keys come here from every app, for Screenshot.app
+     (AppController+WindowServer.m), as SystemUIServer has them on a
+     Mac. An older server answers with an error and keeps them. */
+  ws_dock_set_screenshot_keys(conn, 1);
+#endif
   [self sendDockEdge];
   [self startWatching];
   [self registerIconManager];
@@ -281,6 +287,16 @@ handleEvent(ws_connection_t *conn, const ws_event_t *ev, void *ctx)
     case WS_EVENT_START_KEY:
       if ([_delegate respondsToSelector:@selector(wsDockManagerStartKey:)])
 	[_delegate wsDockManagerStartKey:self];
+      break;
+#endif
+#ifdef WS_DOCK_SCREENSHOT_KEYS
+    case WS_EVENT_SCREENSHOT_KEY:
+      if ([_delegate respondsToSelector:
+		       @selector(wsDockManager:screenshotKey:clipboard:)])
+	[_delegate wsDockManager:self
+		   screenshotKey:ev->u.screenshot_key.action
+		       clipboard:(ev->u.screenshot_key.flags
+				  & WS_SCREENSHOT_CLIPBOARD) != 0];
       break;
 #endif
 #ifdef WS_SERVER_MENU_BAR
