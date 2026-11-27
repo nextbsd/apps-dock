@@ -101,6 +101,7 @@ StartAskLoginWindow(const char *what)
   NSMutableArray *_items;	/* {kind, path, title, rect} */
   NSInteger _hover;
   CGFloat _scroll;
+  BOOL _powerOpen;		/* the power button's flyout */
 }
 - (id) initWithFrame: (NSRect)frame menu: (DockStartMenu *)menu;
 - (void) reload;
@@ -114,7 +115,9 @@ StartAskLoginWindow(const char *what)
 - (BOOL) showsAllApps;
 - (void) setShowsAllApps: (BOOL)flag;
 - (void) openItem: (NSDictionary *)item;
-- (void) showPowerMenu: (NSRect)rect inView: (NSView *)view;
+- (void) logOut: (id)sender;
+- (void) restart: (id)sender;
+- (void) shutDown: (id)sender;
 @end
 
 @implementation DockStartMenu
@@ -393,30 +396,6 @@ StartAskLoginWindow(const char *what)
     [[NSWorkspace sharedWorkspace] openFile:path];
 }
 
-- (void) showPowerMenu: (NSRect)rect inView: (NSView *)view
-{
-  NSMenu *menu = AUTORELEASE([[NSMenu alloc] initWithTitle:@"Power"]);
-  NSEvent *event;
-
-  [[menu addItemWithTitle:[NSString stringWithFormat:@"Log Out %@…",
-				     NSUserName()]
-		   action:@selector(logOut:) keyEquivalent:@""] setTarget:self];
-  [[menu addItemWithTitle:@"Restart…" action:@selector(restart:)
-	    keyEquivalent:@""] setTarget:self];
-  [[menu addItemWithTitle:@"Shut Down…" action:@selector(shutDown:)
-	    keyEquivalent:@""] setTarget:self];
-  event = [NSEvent mouseEventWithType:NSLeftMouseDown
-			     location:[view convertPoint:rect.origin toView:nil]
-			modifierFlags:0
-			    timestamp:0
-			 windowNumber:[self windowNumber]
-			      context:nil
-			  eventNumber:0
-			   clickCount:1
-			     pressure:1];
-  [NSMenu popUpContextMenu:menu withEvent:event forView:view];
-}
-
 /* As a Mac asks: are you sure? Then loginwindow does it. */
 - (void) power: (const char *)what title: (NSString *)title
        message: (NSString *)message button: (NSString *)button
@@ -502,6 +481,8 @@ StartAskLoginWindow(const char *what)
   [_items removeAllObjects];
   _hover = -1;
   if ([query length] > 0)
+    _powerOpen = NO;
+  if ([query length] > 0)
     {
       NSMutableArray *results = [NSMutableArray array];
       NSArray *apps = [_owner applications];
@@ -577,13 +558,32 @@ StartAskLoginWindow(const char *what)
       @"power", @"kind", @"Power", @"title", nil]
 	   rect:NSMakeRect(StartWidth - StartPad - 36,
 			   StartHeight - StartBarHeight + 13, 36, 36)];
+  if (_powerOpen)
+    {
+      /* Above the button, as Windows shows it; drawn last, so on top. */
+      NSArray *kinds = [NSArray arrayWithObjects:@"logout", @"restart",
+				@"shutdown", nil];
+      NSArray *titles = [NSArray arrayWithObjects:
+	  [NSString stringWithFormat:@"Log Out %@…",
+		    [NSFullUserName() length] ? NSFullUserName() : NSUserName()],
+	  @"Restart…", @"Shut Down…", nil];
+      CGFloat top = StartHeight - StartBarHeight + 8 - 3 * 32 - 8;
+      for (i = 0; i < 3; i++)
+	[self addItem:[NSDictionary dictionaryWithObjectsAndKeys:
+	    [kinds objectAtIndex:i], @"kind", [titles objectAtIndex:i], @"title",
+	    nil]
+		 rect:NSMakeRect(StartWidth - StartPad - 210, top + 4 + i * 32,
+				 202, 30)];
+    }
   [self setNeedsDisplay:YES];
 }
 
 - (NSInteger) itemAtPoint: (NSPoint)p
 {
-  NSUInteger i;
-  for (i = 0; i < [_items count]; i++)
+  NSInteger i;
+
+  /* The last drawn is on top. */
+  for (i = (NSInteger)[_items count] - 1; i >= 0; i--)
     if (NSPointInRect(p, [[[_items objectAtIndex:i] objectForKey:@"rect"]
 			    rectValue]))
       return i;
@@ -612,13 +612,27 @@ StartAskLoginWindow(const char *what)
   NSInteger i = [self itemAtPoint:[self convertPoint:[event locationInWindow]
 					     fromView:nil]];
   NSDictionary *item;
+  NSString *kind;
 
-  if (i < 0)
-    return;
-  item = [_items objectAtIndex:i];
-  if ([[item objectForKey:@"kind"] isEqual:@"power"])
-    [_owner showPowerMenu:[[item objectForKey:@"rect"] rectValue] inView:self];
-  else
+  item = i >= 0 ? [_items objectAtIndex:i] : nil;
+  kind = [item objectForKey:@"kind"];
+  if ([kind isEqual:@"power"] || (_powerOpen && ![kind isEqual:@"logout"]
+      && ![kind isEqual:@"restart"] && ![kind isEqual:@"shutdown"]))
+    {
+      /* The button opens and closes the flyout; a click elsewhere just
+	 closes it. */
+      _powerOpen = [kind isEqual:@"power"] ? !_powerOpen : NO;
+      [self reload];
+      return;
+    }
+  _powerOpen = NO;
+  if ([kind isEqual:@"logout"])
+    [_owner logOut:nil];
+  else if ([kind isEqual:@"restart"])
+    [_owner restart:nil];
+  else if ([kind isEqual:@"shutdown"])
+    [_owner shutDown:nil];
+  else if (item != nil)
     [_owner openItem:item];
 }
 
@@ -740,6 +754,31 @@ StartAskLoginWindow(const char *what)
 	    [text set];
 	    [ring stroke];
 	  }
+	  continue;
+	}
+      if ([kind isEqual:@"logout"] || [kind isEqual:@"restart"]
+	  || [kind isEqual:@"shutdown"])
+	{
+	  if ([kind isEqual:@"logout"])
+	    {
+	      /* The flyout's box, behind its three rows. */
+	      NSRect box = NSMakeRect(NSMinX(r) - 4, NSMinY(r) - 4,
+				      NSWidth(r) + 8, 3 * 32 + 6);
+	      [StartColor(0x2e3139, 0xffffff) set];
+	      [[NSBezierPath bezierPathWithRoundedRect:box xRadius:8
+					       yRadius:8] fill];
+	      [StartColor(0x454a55, 0xd3d5db) set];
+	      [[NSBezierPath bezierPathWithRoundedRect:NSInsetRect(box, 0.5, 0.5)
+					       xRadius:8 yRadius:8] stroke];
+	    }
+	  if (lit)
+	    {
+	      [hover set];
+	      [[NSBezierPath bezierPathWithRoundedRect:r xRadius:5
+					       yRadius:5] fill];
+	    }
+	  [title drawAtPoint:NSMakePoint(NSMinX(r) + 12, NSMinY(r) + 7)
+	      withAttributes:[self textAttributes:13 weight:NO color:text]];
 	  continue;
 	}
       if (lit)

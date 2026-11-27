@@ -145,10 +145,15 @@
       [self acknowledgeWiggleForItem:[_items objectAtIndex:index]];
     }
 
-  /* A minimized window in the Dock comes back with one click. */
-  if (index != NSNotFound &&
-      (_singleClickLaunchesApplications ||
-       [(DockItem *)[_items objectAtIndex:index] kind] == DockItemMinimizedWindow))
+  /* One click does it (the cube and the Recycler too), unless the user
+     chose NeXTSTEP's double click; a minimized window always comes back
+     with one. */
+  if (_singleClickLaunchesApplications && clickedIndex != NSNotFound)
+    {
+      isDoubleClick = YES;
+    }
+  else if (index != NSNotFound &&
+	   [(DockItem *)[_items objectAtIndex:index] kind] == DockItemMinimizedWindow)
     {
       isDoubleClick = YES;
     }
