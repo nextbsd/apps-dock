@@ -22,6 +22,7 @@
 #import "SettingsController.h"
 #import "X11DockManager.h"
 #import "WSDockManager.h"
+#import "DockStartMenu.h"
 #import "DockExtrasController.h"
 
 @class ApplicationIconManager;
@@ -35,6 +36,8 @@
 {
   NSWindow *_window;
   SettingsController *_settingsController;
+  /* The Windows style's Start menu, made the first time it opens. */
+  DockStartMenu *_startMenu;
   RecyclerController *_recyclerController;
   DockPreferences *_preferences;
   DockView *_dockView;

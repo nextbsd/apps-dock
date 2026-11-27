@@ -118,6 +118,9 @@
       _windowManager = ws;
       [ws setDelegate:self];
       [ws setHidesMiniwindows:_hidesMiniwindows];
+      /* The style was applied before there was a connection: the
+         taskbar's Start menu, sent once it connects. */
+      [ws setShowsStartMenu:[[DockPreferences dockStyle] isEqual:@"tiling"]];
       [ws start];
       [self reportDockEdge];
       [self loadDockExtras];

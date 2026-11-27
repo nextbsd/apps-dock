@@ -110,6 +110,11 @@
   [_dockView setShowsSeparators:[style isEqual:@"mac"]];
   [_dockView setShowsPanel:[style isEqual:@"mac"]];
   [_dockView setTaskbar:[style isEqual:@"tiling"]];
+  /* The taskbar has a Start menu: its cube and the Start key open it. */
+  if ([_windowManager respondsToSelector:@selector(setShowsStartMenu:)])
+    [_windowManager setShowsStartMenu:[style isEqual:@"tiling"]];
+  if (![style isEqual:@"tiling"])
+    [_startMenu close];
 }
 
 - (SettingsController *) settingsController

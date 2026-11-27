@@ -173,6 +173,10 @@ watchedModes(void)
   /* With MinimizeIntoDock on, WindowServer hands the minimized windows
    * to this Dock instead of drawing tiles (WS_EVENT_DOCK_STATE). */
   ws_dock_show_minimized(conn, 1);
+#ifdef WS_DOCK_START_MENU
+  if (_showsStartMenu)
+    ws_dock_set_start_menu(conn, 1);
+#endif
   [self sendDockEdge];
   [self startWatching];
   [self registerIconManager];
@@ -197,6 +201,17 @@ watchedModes(void)
       ws_dock_set_edge((ws_connection_t *)_connection, edges[_edge],
 		       _edgeThickness);
     }
+#endif
+}
+
+- (void) setShowsStartMenu: (BOOL)flag
+{
+  if (_showsStartMenu == flag)
+    return;
+  _showsStartMenu = flag;
+#ifdef WS_DOCK_START_MENU
+  if (_connection)
+    ws_dock_set_start_menu((ws_connection_t *)_connection, flag ? 1 : 0);
 #endif
 }
 
@@ -262,6 +277,12 @@ handleEvent(ws_connection_t *conn, const ws_event_t *ev, void *ctx)
     case WS_EVENT_PREVIEW_CHANGED:
       [self requestPreviewForWindow:ev->hdr.window];
       break;
+#ifdef WS_DOCK_START_MENU
+    case WS_EVENT_START_KEY:
+      if ([_delegate respondsToSelector:@selector(wsDockManagerStartKey:)])
+	[_delegate wsDockManagerStartKey:self];
+      break;
+#endif
 #ifdef WS_SERVER_MENU_BAR
     case WS_EVENT_USABLE_AREA:
       /* The active app's Mac menu bar came, went or changed height. */

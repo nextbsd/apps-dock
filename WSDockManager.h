@@ -56,6 +56,9 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
 @optional
 /* The menu bar strip along the top (-menuBarHeight) changed. */
 - (void) wsDockManagerMenuBarDidChange: (WSDockManager *)manager;
+@optional
+/* The Start key was tapped on its own (after -setShowsStartMenu:YES). */
+- (void) wsDockManagerStartKey: (WSDockManager *)manager;
 @end
 
 @interface WSDockManager : NSObject
@@ -71,6 +74,7 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
   BOOL _listScheduled;
   BOOL _previewsScheduled;
   BOOL _edgeKnown;
+  BOOL _showsStartMenu;
   DockEdge _edge;
   unsigned int _edgeThickness;
   unsigned int _menuBarHeight;
@@ -100,6 +104,9 @@ extern NSString * const WSDockKeyKey;		/* NSNumber, BOOL: key window */
  * WindowServer, so that tiling keeps that strip free (servers with
  * WS_SERVER_DOCK_EDGE; sent again on connecting). */
 - (void) setDockEdge: (DockEdge)edge thickness: (CGFloat)thickness;
+/* Whether this Dock shows a Start menu (the Windows style's taskbar):
+   WindowServer then sends it the Start key's taps. */
+- (void) setShowsStartMenu: (BOOL)flag;
 /* The height of the Mac menu bar along the top of the screen
  * (NBMenuStyle macmenubar), which the Dock stays below; 0 for none. */
 - (CGFloat) menuBarHeight;
