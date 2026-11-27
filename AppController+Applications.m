@@ -419,14 +419,33 @@
   return [path length] ? [[NSWorkspace sharedWorkspace] iconForFile:path] : nil;
 }
 
+/* As on macOS, an app whose Info.plist says LSUIElement (or
+ * LSBackgroundOnly) is an agent: it has no Dock item while it runs.
+ * Screenshot.app is one: the screenshot keys start it, and it shows
+ * only its toolbar and pictures. */
+- (BOOL) applicationBundlePathIsAgent: (NSString *)path
+{
+  NSString *bundlePath = [DockItem applicationBundlePathForPath:path];
+  NSDictionary *info;
+
+  if (![bundlePath length])
+    {
+      return NO;
+    }
+  info = [[NSBundle bundleWithPath:bundlePath] infoDictionary];
+  return [[info objectForKey:@"LSUIElement"] boolValue] ||
+    [[info objectForKey:@"LSBackgroundOnly"] boolValue];
+}
+
 /* Apps that never get an item of their own: Dock and Workspace, which the
- * dock shows itself, and the system UI in CoreServices, which it never
- * shows. */
+ * dock shows itself, the system UI in CoreServices, which it never
+ * shows, and agents. */
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path
 {
   return [self applicationBundlePathIsDock:path] ||
     [self applicationBundlePathIsWorkspace:path] ||
-    [self applicationBundlePathIsCoreService:path];
+    [self applicationBundlePathIsCoreService:path] ||
+    [self applicationBundlePathIsAgent:path];
 }
 
 - (void) rememberLaunchedApplicationPath: (NSString *)path

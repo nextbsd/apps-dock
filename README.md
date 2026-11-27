@@ -101,6 +101,20 @@ apps-windowserver's README). It's built when pkg-config finds
   On every edge, menus and Dock extras' panels open beside their tile
   toward the middle of the screen, tooltips point back at the tile, and
   icons bounce away from the edge, into the screen.
+- **The screenshot keys** (nextbsd/nextbsd#715): WindowServer takes
+  Command+Shift+3, 4 and 5 and Print Screen (Control too: to the
+  clipboard) from every app and gives them to the Dock
+  (`ws_dock_set_screenshot_keys()`, `WS_EVENT_SCREENSHOT_KEY`), as
+  SystemUIServer has them on a Mac. The Dock hands each to Screenshot.app
+  (nextbsd/apps-settings): to the copy already running, through its
+  Distributed Objects name `org.nextbsd.Screenshot` (message ports), or by
+  starting it, `/System/Applications/Screenshot.app/Screenshot -Shortcut
+  screen|selection|toolbar [-Clipboard YES]`, the copy WindowServer trusts
+  to capture without asking. On an older WindowServer the keys stay the
+  apps'.
+- **Agents** have no Dock item: an app whose Info.plist sets `LSUIElement`
+  (or `LSBackgroundOnly`), as on macOS, like Screenshot.app, which only
+  shows its toolbar and pictures.
 - **The Dock's edge for WindowServer:** the Dock reports the edge it fills
   and its thickness (`ws_dock_set_edge()`, on servers with
   `WS_SERVER_DOCK_EDGE`) when it connects and whenever either changes, so
@@ -201,7 +215,7 @@ The Dock owns the list (`DockExtrasSettings.h` has the names):
   `DockExtrasHidden` itself; the Dock reads it when it starts.
 
 The identifiers: `org.nextbsd.dockextra.wifi`, `.bluetooth`, `.battery`,
-`.sound`, `.input`, `.clock`. apps-settings' `Shared/NBDockExtra` is the
+`.sound`, `.input`, `.clock`, `.recording`. apps-settings' `Shared/NBDockExtra` is the
 apps' side.
 
 The status area exists only where the Dock fills its screen edge (on
@@ -297,6 +311,19 @@ Bundled extras:
   `keys`); the extra reads them again and redraws, and posts the same
   when its own menu changes them. **Open Date & Time Settings…** opens
   `Date & Time.app` (or an older install's `DateTime.app`).
+
+- **Screen recording** (`Recording.dockextra`, nextbsd/nextbsd#715):
+  while Screenshot.app (nextbsd/apps-settings) records the screen, a red
+  dot, the time recorded and a stop button; otherwise no tile. In the Mac
+  menu style it is the red "● 0:42 ◻" item in the menu bar, whose menu has
+  **Stop Recording** (an item's menu is open while it is clicked, so the
+  item can't go away under it); in the Dock and the Windows style's taskbar
+  a click on the tile stops it at once. Screenshot posts the distributed
+  notification `org.nextbsd.Screenshot.RecordingChanged` (`Recording`,
+  `Started`, seconds since 1970) when it starts and stops; the extra asks
+  for it once when it loads (`org.nextbsd.Screenshot.RecordingQuery`) and
+  stops a recording with `org.nextbsd.Screenshot.Stop`. The names are
+  Screenshot's (`Screenshot/SSRequest.h` there).
 
 ## Build
 

@@ -1,0 +1,6 @@
+{
+  CFBundleIdentifier = "org.nextbsd.dockextra.recording";
+  CFBundleName = "Screen Recording";
+  DockExtraDefaultPosition = 1;
+  DockExtraMenuBarPosition = 1;
+}

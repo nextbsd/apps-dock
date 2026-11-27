@@ -166,6 +166,7 @@ matchesRunningProcessPath: (NSString *)processPath;
 - (BOOL) applicationBundlePathIsDock: (NSString *)path;
 - (BOOL) applicationBundlePathIsWorkspace: (NSString *)path;
 - (BOOL) applicationBundlePathIsCoreService: (NSString *)path;
+- (BOOL) applicationBundlePathIsAgent: (NSString *)path;
 - (BOOL) applicationBundlePathIsBuiltIn: (NSString *)path;
 - (NSString *) workspaceApplicationPath;
 - (void) updateTopTileWithProcessPaths: (NSArray *)processPaths;
