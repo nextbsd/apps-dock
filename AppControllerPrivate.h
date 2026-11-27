@@ -50,6 +50,11 @@
 - (void) setDockExtraHidden: (BOOL)hidden forIdentifier: (NSString *)identifier;
 @end
 
+@interface AppController (StartMenu)
+- (void) toggleStartMenu;
+- (void) activateWorkspace;
+@end
+
 @interface AppController (WindowServer) <WSDockManagerDelegate>
 - (BOOL) usesWindowServer;
 - (void) sortItemsIntoSections;

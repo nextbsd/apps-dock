@@ -764,10 +764,14 @@ modeValue(id modes, NSString *mode, NSString *key)
 					  forKey:DockPlaysSoundOnRemoveDefaultsKey];
 }
 
+/* One click, as people expect now; NO brings back NeXTSTEP's double
+   click. */
 - (BOOL) savedSingleClickLaunchesApplications
 {
-  return [[NSUserDefaults standardUserDefaults]
-	   boolForKey:DockSingleClickLaunchesApplicationsDefaultsKey];
+  id value = [[NSUserDefaults standardUserDefaults]
+	       objectForKey:DockSingleClickLaunchesApplicationsDefaultsKey];
+
+  return value != nil ? [value boolValue] : YES;
 }
 
 - (void) saveSingleClickLaunchesApplications: (BOOL)singleClickLaunches

@@ -653,8 +653,29 @@
 }
 
 
-/* The top tile is Workspace, as on NeXTSTEP: activate it, or start it. */
+/* The top tile is Workspace, as on NeXTSTEP: activate it, or start it.
+   On the Windows style's taskbar it is the Start button. */
 - (void) dockViewDidActivateTopIcon
+{
+  if ([_dockView taskbar])
+    {
+      [self toggleStartMenu];
+      return;
+    }
+  [self activateWorkspace];
+}
+
+- (void) toggleStartMenu
+{
+  if (_startMenu == nil)
+    _startMenu = [[DockStartMenu alloc] initWithTarget:self
+				      fileViewerAction:@selector(activateWorkspace)];
+  [_startMenu toggle];
+}
+
+/* Workspace: a running one brings a File Viewer forward or opens one;
+   otherwise it starts. */
+- (void) activateWorkspace
 {
   NSString *path = [self workspaceApplicationPath];
   DockItem *item;

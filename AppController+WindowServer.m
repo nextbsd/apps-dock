@@ -210,6 +210,12 @@ static NSSet *knownWindowProcesses = nil;
 /* ---- WSDockManagerDelegate ---- */
 
 /* A Mac menu bar came, went or changed height: stay below it. */
+- (void) wsDockManagerStartKey: (WSDockManager *)manager
+{
+  if ([_dockView taskbar])
+    [self toggleStartMenu];
+}
+
 - (void) wsDockManagerMenuBarDidChange: (WSDockManager *)manager
 {
   if (_window != nil)

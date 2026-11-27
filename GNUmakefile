@@ -52,7 +52,8 @@ X11DockManager+IconManager.m \
 X11DockManager+Layout.m \
 X11DockManager+Activation.m \
 X11DockManager.m \
-WSDockManager.m
+WSDockManager.m \
+DockStartMenu.m
 
 Dock_APPLICATION_ICON = Dock.tiff
 
